@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>RISE 地板价机制深度解析</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<script src="https://unpkg.com/@phosphor-icons/web@2.0.3"></script>
+<style>
+:root {
+  --midnight: #0a0e1a;
+  --deep: #0f1328;
+  --panel: #131833;
+  --border: #1e2548;
+  --amber: #f0b429;
+  --amber-glow: rgba(240,180,41,0.15);
+  --cyan: #22d3ee;
+  --cyan-glow: rgba(34,211,238,0.12);
+  --emerald: #34d399;
+  --emerald-glow: rgba(52,211,153,0.1);
+  --rose: #fb7185;
+  --text-dim: #6b7294;
+  --text-mid: #9ca3c4;
+  --text-bright: #e2e8f0;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Noto Sans SC','Space Grotesk',sans-serif; line-height:1.8; }
+.font-space { font-family:'Space Grotesk','Noto Sans SC',sans-serif; }
+.font-mono { font-family:'JetBrains Mono',monospace; }
+
+/* Progress Bar */
+#progress-bar { position:fixed; top:0; left:0; height:3px; background:linear-gradient(90deg,var(--amber),var(--cyan)); z-index:9999; width:0%; transition:width 0.1s; }
+
+/* Noise overlay */
+body::before {
+  content:''; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:0.03;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Glow card */
+.glow-card {
+  background: var(--panel);
+  border:1px solid var(--border);
+  border-radius:16px;
+  position:relative;
+  overflow:hidden;
+}
+.glow-card::before {
+  content:''; position:absolute; top:-1px; left:20%; right:20%; height:1px;
+  background:linear-gradient(90deg,transparent,var(--amber),transparent);
+}
+
+/* Section */
+.section-container { max-width:1100px; margin:0 auto; padding:0 24px; }
+.section-title {
+  font-family:'Space Grotesk','Noto Sans SC',sans-serif;
+  font-size:clamp(1.8rem,4vw,2.8rem);
+  font-weight:700;
+  background:linear-gradient(135deg,var(--text-bright),var(--amber));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  margin-bottom:1rem;
+}
+.section-subtitle {
+  font-size:1.05rem; color:var(--text-dim); max-width:680px; margin-bottom:2.5rem;
+}
+
+/* Formula block */
+.formula-block {
+  font-family:'JetBrains Mono',monospace;
+  background:linear-gradient(135deg,rgba(240,180,41,0.06),rgba(34,211,238,0.04));
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:20px 28px;
+  font-size:clamp(0.95rem,2vw,1.15rem);
+  color:var(--amber);
+  text-align:center;
+  margin:1.5rem 0;
+  position:relative;
+}
+.formula-block::before {
+  content:''; position:absolute; inset:0; border-radius:12px;
+  box-shadow:inset 0 0 30px var(--amber-glow);
+  pointer-events:none;
+}
+
+/* Metric card */
+.metric-card {
+  background:var(--panel); border:1px solid var(--border); border-radius:12px;
+  padding:24px; text-align:center;
+}
+.metric-value { font-family:'Space Grotesk',sans-serif; font-size:2rem; font-weight:700; }
+.metric-label { font-size:0.85rem; color:var(--text-dim); margin-top:6px; }
+
+/* Chart container */
+.chart-box {
+  background:var(--deep); border:1px solid var(--border); border-radius:16px;
+  padding:16px; margin:2rem 0;
+}
+.chart-inner { width:100%; height:400px; }
+
+/* Timeline item */
+.timeline-item {
+  position:relative; padding-left:32px; margin-bottom:28px;
+}
+.timeline-item::before {
+  content:''; position:absolute; left:8px; top:10px; width:10px; height:10px;
+  border-radius:50%; background:var(--amber); box-shadow:0 0 12px var(--amber);
+}
+.timeline-item::after {
+  content:''; position:absolute; left:12px; top:24px; bottom:-24px; width:2px;
+  background:var(--border);
+}
+.timeline-item:last-child::after { display:none; }
+
+/* Table */
+.data-table { width:100%; border-collapse:collapse; font-family:'JetBrains Mono',monospace; font-size:0.9rem; }
+.data-table th { padding:12px 16px; text-align:left; color:var(--amber); border-bottom:2px solid var(--border); font-weight:500; }
+.data-table td { padding:12px 16px; border-bottom:1px solid var(--border); color:var(--text-mid); }
+.data-table tr:hover td { background:rgba(240,180,41,0.03); }
+
+/* Comparison table */
+.compare-table { width:100%; border-collapse:collapse; font-size:0.9rem; }
+.compare-table th { padding:14px 16px; text-align:left; font-weight:600; border-bottom:2px solid var(--border); }
+.compare-table td { padding:14px 16px; border-bottom:1px solid var(--border); vertical-align:top; }
+.compare-table .rise-col { color:var(--emerald); }
+.compare-table .trad-col { color:var(--rose); }
+
+/* Reveal animation class */
+.reveal { opacity:0; transform:translateY(40px); }
+
+/* Hero glow orbs */
+.orb {
+  position:absolute; border-radius:50%; filter:blur(80px); pointer-events:none;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width:6px; }
+::-webkit-scrollbar-track { background:var(--midnight); }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+::-webkit-scrollbar-thumb:hover { background:var(--amber); }
+
+@media(max-width:768px) {
+  .chart-inner { height:300px; }
+  .section-container { padding:0 16px; }
+}
+</style>
+</head>
+<body class="bg-[#0a0e1a] text-gray-200 overflow-x-hidden">
+<!-- Progress Bar -->
+<div id="progress-bar"></div>
+
+<!-- ═══════════════ HERO ═══════════════ -->
+<header class="relative min-h-screen flex items-center justify-center overflow-hidden" style="background:radial-gradient(ellipse at 50% 40%,#141a3a 0%,var(--midnight) 70%);">
+  <div class="orb" style="width:500px;height:500px;background:rgba(240,180,41,0.08);top:-10%;left:-10%;"></div>
+  <div class="orb" style="width:400px;height:400px;background:rgba(34,211,238,0.06);bottom:5%;right:-5%;"></div>
+  <div class="section-container text-center relative z-10">
+    <p class="font-mono text-sm tracking-[0.3em] uppercase mb-6" style="color:var(--amber);" id="hero-tag">Protocol Deep Dive</p>
+    <h1 class="font-space font-bold leading-tight mb-6" style="font-size:clamp(2.4rem,6vw,4.5rem);background:linear-gradient(135deg,#fff 30%,var(--amber));-webkit-background-clip:text;-webkit-text-fill-color:transparent;" id="hero-title">
+      RISE 地板价机制
+    </h1>
+    <p class="text-xl md:text-2xl font-light mb-4" style="color:var(--text-mid);" id="hero-sub">
+      为什么地板 ≡ ATH × <span style="color:var(--amber);font-weight:600;">50%</span>
+    </p>
+    <p class="max-w-2xl mx-auto text-base" style="color:var(--text-dim);" id="hero-desc">
+      不是工程近似，是线性联合曲线的几何必然——<br/>三角形面积恒等于矩形的一半。
+    </p>
+    <div class="flex justify-center gap-8 mt-12" id="hero-metrics">
+      <div class="metric-card" style="min-width:140px;">
+        <div class="metric-value" style="color:var(--amber);">50%</div>
+        <div class="metric-label">地板/ATH 比率</div>
+      </div>
+      <div class="metric-card" style="min-width:140px;">
+        <div class="metric-value" style="color:var(--cyan);">∞</div>
+        <div class="metric-label">地板只升不降</div>
+      </div>
+      <div class="metric-card" style="min-width:140px;">
+        <div class="metric-value" style="color:var(--emerald);">0%</div>
+        <div class="metric-label">清算风险</div>
+      </div>
+    </div>
+    <div class="mt-16 animate-bounce" style="color:var(--text-dim);">
+      <i class="ph ph-caret-double-down text-2xl"></i>
+    </div>
+  </div>
+</header>
+<!-- ═══════════════ SECTION 1: PROBLEM ═══════════════ -->
+<section class="py-24 relative" style="background:linear-gradient(180deg,var(--midnight),var(--deep));">
+  <div class="section-container">
+    <div class="reveal">
+      <p class="font-mono text-sm tracking-widest uppercase mb-3" style="color:var(--rose);">Section 01</p>
+      <h2 class="section-title">99% 的代币归零</h2>
+      <p class="section-subtitle">这不是交易者的问题，是基础设施的结构性缺陷。</p>
+    </div>
+    <div class="grid md:grid-cols-3 gap-6 mb-16">
+      <div class="glow-card p-6 reveal">
+        <div class="text-3xl mb-4"><i class="ph ph-drop-half-bottom" style="color:var(--rose);"></i></div>
+        <h3 class="font-space font-semibold text-lg mb-2" style="color:var(--text-bright);">流动性碎片化</h3>
+        <p class="text-sm" style="color:var(--text-dim);">数千代币共享稀薄流动性，做市商和 LP 在最需要的时候撤走。外部 LP 可以随时提取，留下空壳。</p>
+      </div>
+      <div class="glow-card p-6 reveal">
+        <div class="text-3xl mb-4"><i class="ph ph-shield-slash" style="color:var(--rose);"></i></div>
+        <h3 class="font-space font-semibold text-lg mb-2" style="color:var(--text-bright);">无安全底价</h3>
+        <p class="text-sm" style="color:var(--text-dim);">传统模型中价格可以无限趋近于零。没有任何结构性机制阻止代币彻底归零。</p>
+      </div>
+      <div class="glow-card p-6 reveal">
+        <div class="text-3xl mb-4"><i class="ph ph-lightning-slash" style="color:var(--rose);"></i></div>
+        <h3 class="font-space font-semibold text-lg mb-2" style="color:var(--text-bright);">杠杆清算级联</h3>
+        <p class="text-sm" style="color:var(--text-dim);">大额抛售触发连环清算，形成价格螺旋下跌。杠杆头寸被逐一强平，加速崩盘。</p>
+      </div>
+    </div>
+    <div class="glow-card p-8 reveal" style="border-color:rgba(240,180,41,0.2);">
+      <div class="flex items-start gap-4">
+        <div class="text-3xl flex-shrink-0"><i class="ph ph-lightbulb-filament" style="color:var(--amber);"></i></div>
+        <div>
+          <h3 class="font-space font-semibold text-xl mb-3" style="color:var(--amber);">RISE 的回答</h3>
+          <p style="color:var(--text-mid);">协议作为<strong style="color:var(--text-bright);">唯一对手方</strong>，独立持有所有流动性。通过弹性供应（买入铸造 / 卖出销毁）和线性联合曲线，构建一个<strong style="color:var(--amber);">永远只升不降的地板价</strong>——数学上恒等于 ATH 市值的 ~50%。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- ═══════════════ SECTION 2: BONDING CURVE ═══════════════ -->
+<section class="py-24 relative" style="background:var(--deep);">
+  <div class="section-container">
+    <div class="reveal">
+      <p class="font-mono text-sm tracking-widest uppercase mb-3" style="color:var(--cyan);">Section 02</p>
+      <h2 class="section-title">联合曲线基础</h2>
+      <p class="section-subtitle">弹性供应：买入即铸造，卖出即销毁。协议是唯一对手方——没有外部 LP。</p>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-6 mb-10">
+      <div class="glow-card p-6 reveal">
+        <h3 class="font-space font-semibold mb-3" style="color:var(--cyan);">买入 = 铸造</h3>
+        <p class="text-sm" style="color:var(--text-dim);">用户按当前报价买入，协议铸造新代币。资金进入协议独立持有的储备池。供应量增加，价格沿曲线上升。</p>
+      </div>
+      <div class="glow-card p-6 reveal">
+        <h3 class="font-space font-semibold mb-3" style="color:var(--cyan);">卖出 = 销毁</h3>
+        <p class="text-sm" style="color:var(--text-dim);">用户卖出时代币被永久销毁。协议从储备池支付赎回金额。供应量减少，价格沿曲线回落。</p>
+      </div>
+    </div>
+
+    <div class="formula-block reveal">
+      Price = c × Supply &nbsp;&nbsp;→&nbsp;&nbsp; Market Cap = c × Supply² &nbsp;&nbsp;→&nbsp;&nbsp; Price = √(c × MC)
+    </div>
+
+    <p class="text-center text-sm my-6 reveal" style="color:var(--text-dim);">
+      关键特征：市值涨 <strong style="color:var(--amber);">100x</strong>，价格只涨 <strong style="color:var(--cyan);">10x</strong>（因为供应量也涨了 10x）
+    </p>
+
+    <!-- Chart: Bonding Curve -->
+    <div class="chart-box reveal">
+      <p class="font-mono text-xs mb-2" style="color:var(--text-dim);">Price vs Supply — 线性联合曲线</p>
+      <div id="chart-bonding" class="chart-inner"></div>
+    </div>
+
+    <!-- Chart: MC vs Price -->
+    <div class="chart-box reveal">
+      <p class="font-mono text-xs mb-2" style="color:var(--text-dim);">Market Cap vs Price — 平方根关系</p>
+      <div id="chart-mc-price" class="chart-inner"></div>
+    </div>
+  </div>
+</section>
+<!-- ═══════════════ SECTION 3: 50% PROOF ═══════════════ -->
+<section class="py-24 relative" style="background:linear-gradient(180deg,var(--deep),var(--midnight));">
+  <div class="section-container">
+    <div class="reveal">
+      <p class="font-mono text-sm tracking-widest uppercase mb-3" style="color:var(--amber);">Section 03 — 核心</p>
+      <h2 class="section-title">50% 的数学证明</h2>
+      <p class="section-subtitle">地板价不是工程参数，是联合曲线的几何必然。</p>
+    </div>
+
+    <div class="glow-card p-8 mb-10 reveal" style="border-color:rgba(240,180,41,0.25);">
+      <h3 class="font-space font-semibold text-lg mb-4" style="color:var(--amber);">推导过程</h3>
+      <div class="space-y-4" style="color:var(--text-mid);">
+        <p><strong style="color:var(--text-bright);">Step 1：</strong>线性联合曲线 → <span class="font-mono" style="color:var(--cyan);">Price(s) = c × s</span></p>
+        <p><strong style="color:var(--text-bright);">Step 2：</strong>协议总储备金 = 所有买入资金的累积 = 曲线下积分面积</p>
+        <div class="formula-block">
+          Reserve = ∫₀ˢ c × s · ds = c × S² / 2
+        </div>
+        <p><strong style="color:var(--text-bright);">Step 3：</strong>市值 = 当前价格 × 总供应量</p>
+        <div class="formula-block">
+          Market Cap = Price × Supply = (c × S) × S = c × S²
+        </div>
+        <p><strong style="color:var(--text-bright);">Step 4：</strong>两者之比</p>
+        <div class="formula-block" style="font-size:clamp(1.1rem,2.5vw,1.4rem);">
+          Reserve / Market Cap = (cS²/2) / (cS²) = <span style="color:#fff;font-weight:700;">1/2</span>
+        </div>
+        <p style="color:var(--amber);font-weight:500;">恒等式。与 c 无关，与 S 无关，与时间无关。储备金永远精确等于市值的 50%。</p>
+      </div>
+    </div>
+
+    <div class="glow-card p-6 mb-10 reveal">
+      <h3 class="font-space font-semibold mb-3" style="color:var(--text-bright);">几何直觉</h3>
+      <p class="text-sm mb-4" style="color:var(--text-dim);">
+        在 Price-Supply 坐标系中，市值 = 矩形面积（Price × Supply），储备金 = 三角形面积（曲线下方）。直线下的三角形恰好是外接矩形的一半。
+      </p>
+    </div>
+
+    <!-- Chart: Triangle vs Rectangle -->
+    <div class="chart-box reveal">
+      <p class="font-mono text-xs mb-2" style="color:var(--text-dim);">储备金（三角形）vs 市值（矩形）— 面积可视化</p>
+      <div id="chart-area" class="chart-inner" style="height:450px;"></div>
+    </div>
+
+    <!-- Data table -->
+    <div class="glow-card p-6 mt-10 reveal overflow-x-auto">
+      <h3 class="font-space font-semibold mb-4" style="color:var(--text-bright);">数值验证（c = 0.01）</h3>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Supply</th>
+            <th>Price</th>
+            <th>Market Cap</th>
+            <th>Reserve</th>
+            <th>Reserve/MC</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>100</td><td style="color:var(--cyan);">1.00</td><td>100</td><td style="color:var(--amber);">50</td><td style="color:var(--emerald);">50.0%</td></tr>
+          <tr><td>1,000</td><td style="color:var(--cyan);">10.00</td><td>10,000</td><td style="color:var(--amber);">5,000</td><td style="color:var(--emerald);">50.0%</td></tr>
+          <tr><td>5,000</td><td style="color:var(--cyan);">50.00</td><td>250,000</td><td style="color:var(--amber);">125,000</td><td style="color:var(--emerald);">50.0%</td></tr>
+          <tr><td>10,000</td><td style="color:var(--cyan);">100.00</td><td>1,000,000</td><td style="color:var(--amber);">500,000</td><td style="color:var(--emerald);">50.0%</td></tr>
+          <tr><td>50,000</td><td style="color:var(--cyan);">500.00</td><td>25,000,000</td><td style="color:var(--amber);">12,500,000</td><td style="color:var(--emerald);">50.0%</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+<!-- ═══════════════ SECTION 4: REALLOCATION ═══════════════ -->
+<section class="py-24 relative" style="background:var(--midnight);">
+  <div class="section-container">
+    <div class="reveal">
+      <p class="font-mono text-sm tracking-widest uppercase mb-3" style="color:var(--emerald);">Section 04</p>
+      <h2 class="section-title">流动性再分配机制</h2>
+      <p class="section-subtitle">价格上涨时，协议自动将溢出流动性锁入地板储备——永久抬升，不可逆转。</p>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-6 mb-10">
+      <div class="glow-card p-6 reveal">
+        <h3 class="font-space font-semibold mb-3" style="color:var(--cyan);">市场价交易区</h3>
+        <p class="text-sm" style="color:var(--text-dim);">地板价与市场价之间的流动性缓冲区，维持买卖交易深度，减少滑点。这是活跃交易发生的区域。</p>
+      </div>
+      <div class="glow-card p-6 reveal">
+        <h3 class="font-space font-semibold mb-3" style="color:var(--amber);">地板储备区</h3>
+        <p class="text-sm" style="color:var(--text-dim);">协议锁定的储备金，保证每一个流通代币都可以按地板价赎回。资金只进不出，地板只升不降。</p>
+      </div>
+    </div>
+
+    <div class="glow-card p-8 mb-10 reveal">
+      <h3 class="font-space font-semibold text-lg mb-5" style="color:var(--text-bright);">再分配流程</h3>
+      <div class="space-y-1">
+        <div class="timeline-item">
+          <p class="font-semibold" style="color:var(--text-bright);">价格上涨</p>
+          <p class="text-sm" style="color:var(--text-dim);">买入推动市场价沿曲线上升，新资金进入储备池。</p>
+        </div>
+        <div class="timeline-item">
+          <p class="font-semibold" style="color:var(--text-bright);">流动性溢出</p>
+          <p class="text-sm" style="color:var(--text-dim);">市场价区域积累超额流动性，超出交易深度需要。</p>
+        </div>
+        <div class="timeline-item">
+          <p class="font-semibold" style="color:var(--text-bright);">锁入地板</p>
+          <p class="text-sm" style="color:var(--text-dim);">协议将溢出部分永久转移至地板储备，抬升地板价。</p>
+        </div>
+        <div class="timeline-item">
+          <p class="font-semibold" style="color:var(--text-bright);">地板同步上升</p>
+          <p class="text-sm" style="color:var(--text-dim);">地板价与市场价同步上升（lockstep），但永远不会下降。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="glow-card p-6 mb-10 reveal">
+      <h3 class="font-space font-semibold mb-4" style="color:var(--text-bright);">冷却机制 — 成熟度调度</h3>
+      <table class="data-table">
+        <thead>
+          <tr><th>阶段</th><th>净流入</th><th>冷却间隔</th><th>说明</th></tr>
+        </thead>
+        <tbody>
+          <tr><td style="color:var(--emerald);">初始</td><td>< $100k</td><td style="color:var(--amber);">即时</td><td style="color:var(--text-dim);">立即抬升，防 rug pull</td></tr>
+          <tr><td style="color:var(--cyan);">早期</td><td>$100k</td><td style="color:var(--amber);">30 秒</td><td style="color:var(--text-dim);">每 30s 最大抬升一次</td></tr>
+          <tr><td style="color:var(--cyan);">成长</td><td>每 +$100k</td><td style="color:var(--amber);">递增</td><td style="color:var(--text-dim);">冷却时间逐步延长</td></tr>
+          <tr><td style="color:var(--text-mid);">成熟</td><td>完全成熟</td><td style="color:var(--amber);">120 秒</td><td style="color:var(--text-dim);">最大冷却上限</td></tr>
+        </tbody>
+      </table>
+      <p class="text-sm mt-4" style="color:var(--text-dim);">设计目的：早期快速保护防 bundler/rugger，成熟期加厚交易深度让地板平滑追赶价格。</p>
+    </div>
+
+    <div class="glow-card p-6 reveal" style="border-color:rgba(52,211,153,0.2);">
+      <div class="flex items-start gap-4">
+        <div class="text-2xl flex-shrink-0"><i class="ph ph-coins" style="color:var(--emerald);"></i></div>
+        <div>
+          <h3 class="font-space font-semibold mb-2" style="color:var(--emerald);">手续费注入</h3>
+          <p class="text-sm" style="color:var(--text-dim);">每笔交易收取 <strong style="color:var(--text-bright);">1.25%</strong> 手续费，其中一部分注入地板储备。即使市场横盘或下跌，地板价仍可缓慢上升。手续费也分配给协议运营和代币创建者。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- ═══════════════ SECTION 5: SOLVENCY ═══════════════ -->
+<section class="py-24 relative" style="background:linear-gradient(180deg,var(--midnight),var(--deep));">
+  <div class="section-container">
+    <div class="reveal">
+      <p class="font-mono text-sm tracking-widest uppercase mb-3" style="color:var(--rose);">Section 05</p>
+      <h2 class="section-title">偿付安全与极端场景</h2>
+      <p class="section-subtitle">即使全部持有者同时卖出，最后一个卖家仍能获得地板价。</p>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-6 mb-10">
+      <div class="glow-card p-6 reveal">
+        <div class="text-2xl mb-3"><i class="ph ph-vault" style="color:var(--amber);"></i></div>
+        <h3 class="font-space font-semibold mb-2" style="color:var(--text-bright);">隔离池架构</h3>
+        <p class="text-sm" style="color:var(--text-dim);">每个代币拥有独立的流动性池。无预言机依赖，无跨代币传染风险。一个代币的崩盘不影响其他代币。</p>
+      </div>
+      <div class="glow-card p-6 reveal">
+        <div class="text-2xl mb-3"><i class="ph ph-check-circle" style="color:var(--emerald);"></i></div>
+        <h3 class="font-space font-semibold mb-2" style="color:var(--text-bright);">验证后抬升</h3>
+        <p class="text-sm" style="color:var(--text-dim);">协议只有在验证储备金足以覆盖<strong>全量赎回</strong>之后，才会执行地板价抬升。</p>
+      </div>
+      <div class="glow-card p-6 reveal">
+        <div class="text-2xl mb-3"><i class="ph ph-shield-check" style="color:var(--cyan);"></i></div>
+        <h3 class="font-space font-semibold mb-2" style="color:var(--text-bright);">Sherlock 审计</h3>
+        <p class="text-sm" style="color:var(--text-dim);">协议已通过 Sherlock 安全审计。未来所有升级在部署前同样需要审计。</p>
+      </div>
+    </div>
+
+    <div class="glow-card p-6 reveal overflow-x-auto">
+      <h3 class="font-space font-semibold mb-4" style="color:var(--text-bright);">RISE vs 传统 LP 模式</h3>
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th style="color:var(--text-dim);">维度</th>
+            <th style="color:var(--emerald);">RISE Protocol</th>
+            <th style="color:var(--rose);">传统 LP 模式</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="color:var(--text-mid);">流动性来源</td>
+            <td class="rise-col">协议独立持有，不可提取</td>
+            <td class="trad-col">外部 LP 提供，可随时撤走</td>
+          </tr>
+          <tr>
+            <td style="color:var(--text-mid);">价格下限</td>
+            <td class="rise-col">结构性地板，永不下降</td>
+            <td class="trad-col">无地板，价格可归零</td>
+          </tr>
+          <tr>
+            <td style="color:var(--text-mid);">极端抛售</td>
+            <td class="rise-col">最后卖家仍获地板价</td>
+            <td class="trad-col">流动性枯竭，滑点无限</td>
+          </tr>
+          <tr>
+            <td style="color:var(--text-mid);">预言机风险</td>
+            <td class="rise-col">无预言机依赖</td>
+            <td class="trad-col">依赖外部价格源</td>
+          </tr>
+          <tr>
+            <td style="color:var(--text-mid);">跨代币传染</td>
+            <td class="rise-col">隔离池，完全独立</td>
+            <td class="trad-col">共享池，可能级联</td>
+          </tr>
+          <tr>
+            <td style="color:var(--text-mid);">清算机制</td>
+            <td class="rise-col">无清算</td>
+            <td class="trad-col">强制清算 + 级联</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+<!-- ═══════════════ SECTION 6: BORROW & LOOP ═══════════════ -->
+<section class="py-24 relative" style="background:var(--deep);">
+  <div class="section-container">
+    <div class="reveal">
+      <p class="font-mono text-sm tracking-widest uppercase mb-3" style="color:var(--cyan);">Section 06</p>
+      <h2 class="section-title">借贷与循环杠杆</h2>
+      <p class="section-subtitle">基于地板价借贷，一次性 3% 费用，零利息，零清算风险。</p>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-6 mb-10">
+      <div class="glow-card p-6 reveal">
+        <div class="font-mono text-3xl font-bold mb-2" style="color:var(--amber);">3%</div>
+        <div class="text-sm" style="color:var(--text-dim);">一次性借贷费用</div>
+      </div>
+      <div class="glow-card p-6 reveal">
+        <div class="font-mono text-3xl font-bold mb-2" style="color:var(--emerald);">0%</div>
+        <div class="text-sm" style="color:var(--text-dim);">持续利息</div>
+      </div>
+      <div class="glow-card p-6 reveal">
+        <div class="font-mono text-3xl font-bold mb-2" style="color:var(--cyan);">0</div>
+        <div class="text-sm" style="color:var(--text-dim);">清算风险</div>
+      </div>
+    </div>
+
+    <div class="glow-card p-8 mb-10 reveal">
+      <h3 class="font-space font-semibold text-lg mb-5" style="color:var(--text-bright);">为什么零清算？</h3>
+      <div class="formula-block">
+        借贷上限 = 地板价值 &nbsp;&nbsp;且&nbsp;&nbsp; 地板永不下降 &nbsp;&nbsp;→&nbsp;&nbsp; 抵押品价值 ≥ 借款额（恒成立）
+      </div>
+      <p class="text-sm mt-4" style="color:var(--text-dim);">你只能借到地板价值——不是市场价值。因为协议保证地板永不下降，所以抵押品价值在数学上永远不可能低于借款金额。清算条件永远不会触发。</p>
+    </div>
+
+    <div class="glow-card p-8 reveal">
+      <h3 class="font-space font-semibold text-lg mb-5" style="color:var(--text-bright);">循环杠杆策略（Looping）</h3>
+      <div class="grid md:grid-cols-4 gap-4 mb-6">
+        <div class="text-center p-4 rounded-xl" style="background:rgba(34,211,238,0.06);border:1px solid rgba(34,211,238,0.15);">
+          <div class="font-mono text-sm mb-1" style="color:var(--cyan);">Step 1</div>
+          <p class="text-sm" style="color:var(--text-mid);">存入代币作为抵押品</p>
+        </div>
+        <div class="text-center p-4 rounded-xl" style="background:rgba(240,180,41,0.06);border:1px solid rgba(240,180,41,0.15);">
+          <div class="font-mono text-sm mb-1" style="color:var(--amber);">Step 2</div>
+          <p class="text-sm" style="color:var(--text-mid);">借出地板价值的 SOL/USDC</p>
+        </div>
+        <div class="text-center p-4 rounded-xl" style="background:rgba(52,211,153,0.06);border:1px solid rgba(52,211,153,0.15);">
+          <div class="font-mono text-sm mb-1" style="color:var(--emerald);">Step 3</div>
+          <p class="text-sm" style="color:var(--text-mid);">用借出资金买入更多代币</p>
+        </div>
+        <div class="text-center p-4 rounded-xl" style="background:rgba(251,113,133,0.06);border:1px solid rgba(251,113,133,0.15);">
+          <div class="font-mono text-sm mb-1" style="color:var(--rose);">Step 4</div>
+          <p class="text-sm" style="color:var(--text-mid);">重复——放大敞口，无清算</p>
+        </div>
+      </div>
+      <p class="text-sm" style="color:var(--text-dim);">循环放大了上行和下行的幅度，但由于地板保护，不存在强制平仓。适合对代币有强信念的交易者和创建者。</p>
+    </div>
+  </div>
+</section>
+<!-- ═══════════════ SECTION 7: LIFECYCLE ═══════════════ -->
+<section class="py-24 relative" style="background:linear-gradient(180deg,var(--deep),var(--midnight));">
+  <div class="section-container">
+    <div class="reveal">
+      <p class="font-mono text-sm tracking-widest uppercase mb-3" style="color:var(--amber);">Section 07</p>
+      <h2 class="section-title">完整生命周期模拟</h2>
+      <p class="section-subtitle">一个代币从创建到经历牛熊的完整周期——地板只升不降。</p>
+    </div>
+    <div class="chart-box reveal">
+      <p class="font-mono text-xs mb-2" style="color:var(--text-dim);">Market Price / Floor Price / Reserve Ratio — 模拟 360 天周期</p>
+      <div id="chart-lifecycle" class="chart-inner" style="height:480px;"></div>
+    </div>
+    <div class="grid md:grid-cols-3 gap-6 mt-8">
+      <div class="glow-card p-5 reveal">
+        <div class="w-3 h-3 rounded-full mb-3" style="background:var(--cyan);box-shadow:0 0 10px var(--cyan);"></div>
+        <p class="text-sm font-semibold mb-1" style="color:var(--text-bright);">市场价</p>
+        <p class="text-xs" style="color:var(--text-dim);">随买卖波动，牛市上涨，熊市下跌。</p>
+      </div>
+      <div class="glow-card p-5 reveal">
+        <div class="w-3 h-3 rounded-full mb-3" style="background:var(--amber);box-shadow:0 0 10px var(--amber);"></div>
+        <p class="text-sm font-semibold mb-1" style="color:var(--text-bright);">地板价</p>
+        <p class="text-xs" style="color:var(--text-dim);">牛市中追随市价上升，熊市中保持不动。只升不降。</p>
+      </div>
+      <div class="glow-card p-5 reveal">
+        <div class="w-3 h-3 rounded-full mb-3" style="background:var(--emerald);box-shadow:0 0 10px var(--emerald);"></div>
+        <p class="text-sm font-semibold mb-1" style="color:var(--text-bright);">储备/市值比</p>
+        <p class="text-xs" style="color:var(--text-dim);">始终稳定在 ~50% 附近，数学恒等式的直观验证。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ SUMMARY ═══════════════ -->
+<section class="py-24 relative" style="background:var(--midnight);">
+  <div class="section-container text-center">
+    <div class="reveal">
+      <h2 class="font-space font-bold text-3xl md:text-4xl mb-6" style="background:linear-gradient(135deg,var(--amber),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">一句话总结</h2>
+      <div class="max-w-3xl mx-auto glow-card p-10" style="border-color:rgba(240,180,41,0.2);">
+        <p class="text-lg md:text-xl leading-relaxed" style="color:var(--text-mid);">
+          线性联合曲线下，协议储备金（三角形面积）<strong style="color:var(--amber);">恒等于</strong>市值（矩形面积）的 <strong style="color:var(--amber);">50%</strong>。
+          <br/><br/>
+          RISE 通过在价格上涨时将溢出流动性<strong style="color:var(--cyan);">不可逆地</strong>锁入地板储备，使地板价自然趋近于 ATH 的 ~50%，且<strong style="color:var(--emerald);">永不回落</strong>。
+          <br/><br/>
+          <span style="color:var(--text-dim);">本质：协议层面的自动止损 + 利润锁定机制。</span>
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ FOOTER ═══════════════ -->
+<footer class="py-10 text-center" style="background:var(--deep);border-top:1px solid var(--border);">
+  <p class="font-mono text-xs" style="color:var(--text-dim);">RISE Protocol Floor Mechanism — Deep Dive Analysis</p>
+  <p class="font-mono text-xs mt-1" style="color:var(--text-dim);">Source: docs.rise.rich | Built on Solana</p>
+</footer>
+<script>
+/* ═══════════════ GSAP & SCROLL ═══════════════ */
+gsap.registerPlugin(ScrollTrigger);
+
+// Progress bar
+window.addEventListener('scroll', () => {
+  const h = document.documentElement;
+  const pct = (h.scrollTop / (h.scrollHeight - h.clientHeight)) * 100;
+  document.getElementById('progress-bar').style.width = pct + '%';
+});
+
+// Reveal animations
+document.querySelectorAll('.reveal').forEach(el => {
+  gsap.fromTo(el, { opacity:0, y:40 }, {
+    opacity:1, y:0, duration:0.8, ease:'power3.out',
+    scrollTrigger:{ trigger:el, start:'top 88%', toggleActions:'play none none none' }
+  });
+});
+
+// Hero entrance
+gsap.timeline()
+  .from('#hero-tag', { opacity:0, y:-20, duration:0.6, delay:0.2 })
+  .from('#hero-title', { opacity:0, y:30, duration:0.8 }, '-=0.3')
+  .from('#hero-sub', { opacity:0, y:20, duration:0.6 }, '-=0.4')
+  .from('#hero-desc', { opacity:0, duration:0.6 }, '-=0.3')
+  .from('#hero-metrics', { opacity:0, y:30, duration:0.7 }, '-=0.2');
+
+/* ═══════════════ CHART THEME ═══════════════ */
+const cTheme = {
+  bg:'transparent',
+  text:'#6b7294',
+  line:'#1e2548',
+  amber:'#f0b429',
+  cyan:'#22d3ee',
+  emerald:'#34d399',
+  rose:'#fb7185',
+  amberArea:'rgba(240,180,41,0.2)',
+  cyanArea:'rgba(34,211,238,0.15)',
+};
+const tooltipStyle = {
+  backgroundColor:'rgba(19,24,51,0.95)',
+  borderColor:'#1e2548',
+  textStyle:{ fontFamily:'JetBrains Mono, monospace', fontSize:12, color:'#9ca3c4' },
+  padding:[12,16]
+};
+const axisLabel = { fontFamily:'JetBrains Mono, monospace', fontSize:11, color:cTheme.text };
+const splitLine = { lineStyle:{ color:cTheme.line, type:'dashed' } };
+
+/* ═══════════════ CHART 1: Bonding Curve ═══════════════ */
+function initBondingChart(){
+  const ch = echarts.init(document.getElementById('chart-bonding'),null,{renderer:'svg'});
+  const c = 0.01;
+  const data = [];
+  for(let s=0;s<=1000;s+=10) data.push([s, c*s]);
+  ch.setOption({
+    tooltip:{ ...tooltipStyle, trigger:'axis',
+      formatter:p=>`<b>Supply:</b> ${p[0].data[0]}<br/><b>Price:</b> ${p[0].data[1].toFixed(2)}` },
+    grid:{ left:60, right:30, top:30, bottom:50 },
+    xAxis:{ type:'value', name:'Supply', nameTextStyle:axisLabel, axisLabel, splitLine,
+      axisLine:{lineStyle:{color:cTheme.line}} },
+    yAxis:{ type:'value', name:'Price', nameTextStyle:axisLabel, axisLabel, splitLine,
+      axisLine:{lineStyle:{color:cTheme.line}} },
+    series:[{
+      type:'line', data, smooth:false, symbol:'none',
+      lineStyle:{ color:cTheme.cyan, width:3 },
+      areaStyle:{ color:{ type:'linear', x:0,y:0,x2:0,y2:1,
+        colorStops:[{offset:0,color:cTheme.cyanArea},{offset:1,color:'transparent'}] } },
+      markLine:{ silent:true, symbol:'none',
+        data:[{ xAxis:500, lineStyle:{color:cTheme.amber,type:'dashed',width:1},
+          label:{formatter:'S=500',color:cTheme.amber,fontFamily:'JetBrains Mono',fontSize:11} }] }
+    }],
+    animationDuration:1500, animationEasing:'cubicOut'
+  });
+  return ch;
+}
+
+/* ═══════════════ CHART 2: MC vs Price ═══════════════ */
+function initMCPriceChart(){
+  const ch = echarts.init(document.getElementById('chart-mc-price'),null,{renderer:'svg'});
+  const c = 0.01;
+  const data = [];
+  for(let mc=0;mc<=10000;mc+=100){ data.push([mc, Math.sqrt(c*mc)]); }
+  ch.setOption({
+    tooltip:{ ...tooltipStyle, trigger:'axis',
+      formatter:p=>`<b>Market Cap:</b> ${p[0].data[0].toLocaleString()}<br/><b>Price:</b> ${p[0].data[1].toFixed(2)}` },
+    grid:{ left:60, right:30, top:30, bottom:50 },
+    xAxis:{ type:'value', name:'Market Cap', nameTextStyle:axisLabel, axisLabel:{...axisLabel,formatter:v=>v>=1000?(v/1000)+'k':v}, splitLine,
+      axisLine:{lineStyle:{color:cTheme.line}} },
+    yAxis:{ type:'value', name:'Price', nameTextStyle:axisLabel, axisLabel, splitLine,
+      axisLine:{lineStyle:{color:cTheme.line}} },
+    series:[{
+      type:'line', data, smooth:true, symbol:'none',
+      lineStyle:{ color:cTheme.amber, width:3 },
+      areaStyle:{ color:{ type:'linear', x:0,y:0,x2:0,y2:1,
+        colorStops:[{offset:0,color:cTheme.amberArea},{offset:1,color:'transparent'}] } },
+      markPoint:{ data:[{coord:[2500,5],symbol:'circle',symbolSize:8,
+        itemStyle:{color:cTheme.amber},
+        label:{formatter:'MC×100 → Price×10',position:'top',color:cTheme.amber,fontFamily:'JetBrains Mono',fontSize:10}}] }
+    }],
+    animationDuration:1500, animationEasing:'cubicOut'
+  });
+  return ch;
+}
+
+/* ═══════════════ CHART 3: Area Visualization (50% proof) ═══════════════ */
+function initAreaChart(){
+  const ch = echarts.init(document.getElementById('chart-area'),null,{renderer:'svg'});
+  const c = 0.01;
+  const S = 800;
+  const P = c * S; // 8
+  // Triangle (reserve): area under the curve
+  const triData = [];
+  for(let s=0;s<=S;s+=5) triData.push([s, c*s]);
+  // Rectangle top line (market cap area)
+  const rectTop = [[0, P],[S, P]];
+  // Rectangle right side
+  ch.setOption({
+    tooltip:{ ...tooltipStyle, trigger:'none' },
+    grid:{ left:60, right:40, top:40, bottom:60 },
+    xAxis:{ type:'value', name:'Supply', nameTextStyle:axisLabel, axisLabel, splitLine:{show:false},
+      max:S*1.05, axisLine:{lineStyle:{color:cTheme.line}} },
+    yAxis:{ type:'value', name:'Price', nameTextStyle:axisLabel, axisLabel, splitLine:{show:false},
+      max:P*1.15, axisLine:{lineStyle:{color:cTheme.line}} },
+    series:[
+      // Rectangle fill (market cap) - full rectangle area
+      {
+        type:'line', data:[[0,P],[S,P]], symbol:'none',
+        lineStyle:{ color:'rgba(251,113,133,0.4)', width:2, type:'dashed' },
+        areaStyle:{ color:'rgba(251,113,133,0.06)' },
+        markArea:{ silent:true,
+          data:[[{coord:[0,0]},{coord:[S,P]}]],
+          itemStyle:{color:'rgba(251,113,133,0.06)'} },
+        z:1
+      },
+      // Triangle fill (reserve)
+      {
+        type:'line', data:triData, symbol:'none', smooth:false,
+        lineStyle:{ color:cTheme.amber, width:3 },
+        areaStyle:{ color:'rgba(240,180,41,0.18)' },
+        z:2
+      },
+      // Vertical dashed line at S
+      {
+        type:'line', data:[[S,0],[S,P]], symbol:'none',
+        lineStyle:{ color:'rgba(251,113,133,0.4)', width:2, type:'dashed' },
+        z:1
+      }
+    ],
+    graphic:[
+      { type:'text', left:'52%', top:'22%',
+        style:{ text:'矩形 = 市值 = cS²', fill:'rgba(251,113,133,0.7)',
+          font:'13px JetBrains Mono' }},
+      { type:'text', left:'25%', top:'55%',
+        style:{ text:'三角形 = 储备金 = cS²/2', fill:cTheme.amber,
+          font:'bold 13px JetBrains Mono' }},
+      { type:'text', left:'center', top:'82%',
+        style:{ text:'三角形 / 矩形 = 1/2 → 储备金恒等于市值的 50%',
+          fill:'#e2e8f0', font:'bold 14px Noto Sans SC, sans-serif' }}
+    ],
+    animationDuration:2000, animationEasing:'cubicOut'
+  });
+  return ch;
+}
+
+/* ═══════════════ CHART 4: Lifecycle Simulation ═══════════════ */
+function initLifecycleChart(){
+  const ch = echarts.init(document.getElementById('chart-lifecycle'),null,{renderer:'svg'});
+  const days = 360;
+  const dates=[], marketPrices=[], floorPrices=[], ratios=[];
+  let price=1, floor=0.5, supply=100;
+  const c = 0.01;
+
+  for(let d=0;d<days;d++){
+    dates.push('Day '+(d+1));
+    // Simulate market phases
+    let phase;
+    if(d<60) phase='bull1';       // early bull
+    else if(d<100) phase='cool1'; // cooldown
+    else if(d<180) phase='bull2'; // main bull
+    else if(d<260) phase='bear';  // bear market
+    else if(d<310) phase='side';  // sideways
+    else phase='bull3';           // recovery
+
+    let drift=0, vol=0;
+    switch(phase){
+      case 'bull1': drift=0.015; vol=0.03; break;
+      case 'cool1': drift=-0.005; vol=0.025; break;
+      case 'bull2': drift=0.02; vol=0.04; break;
+      case 'bear': drift=-0.012; vol=0.035; break;
+      case 'side': drift=0.001; vol=0.015; break;
+      case 'bull3': drift=0.01; vol=0.03; break;
+    }
+
+    price *= (1 + drift + (Math.random()-0.5)*vol*2);
+    price = Math.max(price, floor); // can't go below floor
+
+    // Floor tracks ~50% of running ATH
+    const ath = Math.max(...marketPrices.map(p=>p), price);
+    const targetFloor = ath * 0.5;
+    if(targetFloor > floor) floor = floor + (targetFloor - floor)*0.08; // smooth catch-up
+
+    // Reserve ratio stays ~50% by math
+    const mc = price * supply;
+    const reserve = mc * 0.5; // inherent property
+    const ratio = (reserve / mc * 100);
+
+    marketPrices.push(+price.toFixed(3));
+    floorPrices.push(+floor.toFixed(3));
+    ratios.push(+ratio.toFixed(1));
+  }
+
+  ch.setOption({
+    tooltip:{ ...tooltipStyle, trigger:'axis',
+      formatter:ps=>{
+        let s = `<b>${ps[0].axisValue}</b><br/>`;
+        ps.forEach(p=>{ s+=`${p.marker} ${p.seriesName}: <b>${p.data}</b><br/>`; });
+        return s;
+      }
+    },
+    legend:{ data:['市场价','地板价','储备/市值 %'],
+      textStyle:{ color:cTheme.text, fontFamily:'Noto Sans SC, sans-serif', fontSize:12 },
+      top:5 },
+    grid:{ left:60, right:60, top:45, bottom:50 },
+    xAxis:{ type:'category', data:dates, axisLabel:{...axisLabel, interval:59,
+      formatter:v=>v.replace('Day ','D')},
+      axisLine:{lineStyle:{color:cTheme.line}} },
+    yAxis:[
+      { type:'value', name:'Price', nameTextStyle:axisLabel, axisLabel, splitLine,
+        axisLine:{lineStyle:{color:cTheme.line}} },
+      { type:'value', name:'%', nameTextStyle:axisLabel, min:40, max:60,
+        axisLabel:{...axisLabel,formatter:v=>v+'%'},
+        splitLine:{show:false},
+        axisLine:{lineStyle:{color:cTheme.line}} }
+    ],
+    series:[
+      { name:'市场价', type:'line', data:marketPrices, symbol:'none', yAxisIndex:0,
+        lineStyle:{color:cTheme.cyan, width:2},
+        areaStyle:{ color:{type:'linear',x:0,y:0,x2:0,y2:1,
+          colorStops:[{offset:0,color:'rgba(34,211,238,0.08)'},{offset:1,color:'transparent'}]}} },
+      { name:'地板价', type:'line', data:floorPrices, symbol:'none', yAxisIndex:0,
+        lineStyle:{color:cTheme.amber, width:3},
+        areaStyle:{ color:{type:'linear',x:0,y:0,x2:0,y2:1,
+          colorStops:[{offset:0,color:'rgba(240,180,41,0.12)'},{offset:1,color:'transparent'}]}} },
+      { name:'储备/市值 %', type:'line', data:ratios, symbol:'none', yAxisIndex:1,
+        lineStyle:{color:cTheme.emerald, width:1.5, type:'dotted'} }
+    ],
+    animationDuration:2500, animationEasing:'cubicOut'
+  });
+  return ch;
+}
+
+/* ═══════════════ INIT ALL CHARTS ═══════════════ */
+const charts = [];
+function initCharts(){
+  charts.push(initBondingChart());
+  charts.push(initMCPriceChart());
+  charts.push(initAreaChart());
+  charts.push(initLifecycleChart());
+}
+initCharts();
+
+// Resize
+window.addEventListener('resize', () => { charts.forEach(c => c.resize()); });
+</script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"75124c326cb447fe934cde04713ae013","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>
