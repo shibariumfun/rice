@@ -84,21 +84,18 @@ main{max-width:1200px;margin:0 auto;padding:24px}
 </head>
 <body>
 <div id="app">
-  <!-- HEADER -->
   <header id="header"></header>
-  <!-- MAIN -->
   <main id="main"></main>
-  <!-- TOAST -->
   <div id="toast" class="toast hidden"></div>
 </div>
 <script>
-const MEME_ADDR="0x0440c80a1D721465494964D37b4a33AF432Ca599";
-const TOKEN_ADDR="0x0422f962DC1F94BeAC37DCE7caE9e7881646CCd5";
+const MEME_ADDR="0x784Af7c7Db39b1b4673516e2A11F38C276dA8db6";
+const TOKEN_ADDR="0x007Eec75f3b65C24B4F27351cAB09EF716255a8b";
 const CHAIN_ID=157;
 const RPC="https://puppynet.shibrpc.com";
 const EXPLORER="https://puppyscan.shib.io";
 
-const MEME_ABI=[{"inputs":[],"name":"BPS","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"K","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"X","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"Y","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"ameToken","outputs":[{"type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"closeFeeRate","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"name":"ameAmount","type":"uint256"}],"name":"closeLong","outputs":[{"type":"uint256"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"name":"pointsAmount","type":"uint256"}],"name":"closeShort","outputs":[{"type":"uint256"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"name":"ameAmount","type":"uint256"}],"name":"estimateLongPayout","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"feeCollected","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"getMarkPrice","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"name":"addr","type":"address"}],"name":"getShortPnL","outputs":[{"type":"int256"}],"stateMutability":"view","type":"function"},{"inputs":[{"name":"addr","type":"address"}],"name":"getShortPosition","outputs":[{"components":[{"name":"margin","type":"uint256"},{"name":"size","type":"uint256"},{"name":"openNotional","type":"uint256"},{"name":"openBlock","type":"uint256"},{"name":"points","type":"uint256"}],"type":"tuple"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"getTWAP","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"minTradeAmount","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"openFeeRate","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"openLong","outputs":[{"type":"uint256"}],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"openShort","outputs":[{"type":"uint256"}],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"shortTotal","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"type":"uint256"}],"name":"snapshots","outputs":[{"name":"price","type":"uint256"},{"name":"timestamp","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"vault","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},{"anonymous":false,"inputs":[{"indexed":true,"name":"user","type":"address"},{"name":"ethAmount","type":"uint256"},{"name":"vammSize","type":"uint256"},{"name":"ameAmount","type":"uint256"},{"name":"fee","type":"uint256"},{"name":"price","type":"uint256"}],"name":"LongOpened","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"user","type":"address"},{"name":"ameBurned","type":"uint256"},{"name":"vammSize","type":"uint256"},{"name":"payout","type":"uint256"},{"name":"fee","type":"uint256"},{"name":"price","type":"uint256"}],"name":"LongClosed","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"owner","type":"address"},{"name":"margin","type":"uint256"},{"name":"size","type":"uint256"},{"name":"openNotional","type":"uint256"},{"name":"points","type":"uint256"},{"name":"price","type":"uint256"}],"name":"ShortOpened","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"owner","type":"address"},{"name":"pointsClosed","type":"uint256"},{"name":"pnl","type":"int256"},{"name":"payout","type":"uint256"},{"name":"fee","type":"uint256"},{"name":"price","type":"uint256"}],"name":"ShortClosed","type":"event"},{"anonymous":false,"inputs":[{"name":"blockNumber","type":"uint256"},{"name":"price","type":"uint256"}],"name":"PriceSnapshot","type":"event"}];
+const MEME_ABI=[{"inputs":[],"name":"BPS","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"K","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"virtualX","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"virtualY","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"ameToken","outputs":[{"type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"closeFeeRate","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"name":"ameAmount","type":"uint256"},{"name":"minPayout","type":"uint256"}],"name":"closeLong","outputs":[{"type":"uint256"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"name":"pointsAmount","type":"uint256"},{"name":"minPayout","type":"uint256"}],"name":"closeShort","outputs":[{"type":"uint256"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"name":"ameAmount","type":"uint256"}],"name":"estimateLongPayout","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"name":"addr","type":"address"},{"name":"pointsAmount","type":"uint256"}],"name":"estimateShortPayout","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"feeCollected","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"getMarkPrice","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"name":"addr","type":"address"}],"name":"getShortPnL","outputs":[{"type":"int256"}],"stateMutability":"view","type":"function"},{"inputs":[{"name":"addr","type":"address"}],"name":"getShortPosition","outputs":[{"components":[{"name":"margin","type":"uint256"},{"name":"baseSize","type":"uint256"},{"name":"openNotional","type":"uint256"},{"name":"openBlock","type":"uint256"},{"name":"points","type":"uint256"}],"type":"tuple"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"getTWAP","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"minTradeAmount","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"openFeeRate","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"name":"minAmeOut","type":"uint256"}],"name":"openLong","outputs":[{"type":"uint256"}],"stateMutability":"payable","type":"function"},{"inputs":[{"name":"minPoints","type":"uint256"}],"name":"openShort","outputs":[{"type":"uint256"}],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"totalShortBase","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"type":"uint256"}],"name":"snapshots","outputs":[{"name":"price","type":"uint256"},{"name":"timestamp","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"vault","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"tokenMultiplier","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},{"anonymous":false,"inputs":[{"indexed":true,"name":"user","type":"address"},{"name":"ethAmount","type":"uint256"},{"name":"baseSize","type":"uint256"},{"name":"ameAmount","type":"uint256"},{"name":"fee","type":"uint256"},{"name":"price","type":"uint256"}],"name":"LongOpened","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"user","type":"address"},{"name":"ameBurned","type":"uint256"},{"name":"baseSize","type":"uint256"},{"name":"payout","type":"uint256"},{"name":"fee","type":"uint256"},{"name":"price","type":"uint256"}],"name":"LongClosed","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"owner","type":"address"},{"name":"margin","type":"uint256"},{"name":"baseSize","type":"uint256"},{"name":"openNotional","type":"uint256"},{"name":"points","type":"uint256"},{"name":"price","type":"uint256"}],"name":"ShortOpened","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"owner","type":"address"},{"name":"pointsClosed","type":"uint256"},{"name":"pnl","type":"int256"},{"name":"payout","type":"uint256"},{"name":"fee","type":"uint256"},{"name":"price","type":"uint256"}],"name":"ShortClosed","type":"event"},{"anonymous":false,"inputs":[{"name":"blockNumber","type":"uint256"},{"name":"price","type":"uint256"}],"name":"PriceSnapshot","type":"event"}];
 
 const TOKEN_ABI=[{"inputs":[{"name":"","type":"address"}],"name":"balanceOf","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"name":"spender","type":"address"},{"name":"amount","type":"uint256"}],"name":"approve","outputs":[{"type":"bool"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"name":"","type":"address"},{"name":"","type":"address"}],"name":"allowance","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"totalSupply","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"symbol","outputs":[{"type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"decimals","outputs":[{"type":"uint8"}],"stateMutability":"view","type":"function"}];
 
@@ -154,7 +151,6 @@ function renderMain(){
       <div class="stat-item"><div class="label">资金池</div><div class="value" id="s-vault">--</div></div>
     </div>
     <div class="grid">
-      <!-- 左: 交易面板 -->
       <div class="card">
         <h3>交易 <button class="refresh-btn" id="refreshBtn" onclick="refreshData()" title="刷新">&#x21bb;</button></h3>
         <div class="tabs">
@@ -163,12 +159,10 @@ function renderMain(){
         </div>
         <div id="trade-panel"></div>
       </div>
-      <!-- 右: 持仓 -->
       <div class="card">
         <h3>我的持仓</h3>
         <div id="positions"><div class="empty">连接钱包查看持仓</div></div>
       </div>
-      <!-- 价格曲线 -->
       <div class="card full-width" id="price-history-section">
         <h3>价格走势</h3>
         <div class="chart-wrap"><canvas id="priceCanvas"></canvas></div>
@@ -211,7 +205,6 @@ function renderTradePanel(){
 
 function fillMaxBone(inputId){
   const el=$("#"+inputId);if(!el||userBoneBal<=0n)return;
-  // 留一点 gas 费，扣 0.01 BONE
   let val=userBoneBal;
   const reserve=pe("0.01");
   if(val>reserve)val=val-reserve;
@@ -246,21 +239,18 @@ function initChart(){
 
 async function loadPriceHistory(){
   try{
-    // 从合约事件中获取 PriceSnapshot
     const filter=memeReadOnly.filters.PriceSnapshot();
     const logs=await memeReadOnly.queryFilter(filter,0,"latest");
     priceHistory=logs.map(l=>({
       block:Number(l.args[0]),
       price:parseFloat(fe(l.args[1]))
     }));
-    // 加上当前价格
     const cur=await memeReadOnly.getMarkPrice();
     const bn=await readProvider.getBlockNumber();
     priceHistory.push({block:bn,price:parseFloat(fe(cur))});
     updateChart();
   }catch(e){
     console.warn("loadPriceHistory:",e);
-    // fallback: just show current
     try{
       const cur=await memeReadOnly.getMarkPrice();
       priceHistory=[{block:0,price:parseFloat(fe(cur))}];
@@ -281,7 +271,6 @@ async function connect(){
   if(!window.ethereum){showToast("请安装 MetaMask 钱包","error");return;}
   try{
     const accs=await window.ethereum.request({method:"eth_requestAccounts"});
-    // 检查/切换网络
     const cid=await window.ethereum.request({method:"eth_chainId"});
     if(parseInt(cid,16)!==CHAIN_ID){
       try{
@@ -301,7 +290,6 @@ async function connect(){
     account=await signer.getAddress();
     meme=new ethers.Contract(MEME_ADDR,MEME_ABI,signer);
     token=new ethers.Contract(TOKEN_ADDR,TOKEN_ABI,signer);
-    // 获取初始余额
     const tokenRead2=new ethers.Contract(TOKEN_ADDR,TOKEN_ABI,readProvider);
     const [ib,ia]=await Promise.all([provider.getBalance(account),tokenRead2.balanceOf(account)]);
     userBoneBal=ib;userAmeBal=ia;
@@ -309,7 +297,6 @@ async function connect(){
     renderTradePanel();
     showToast("钱包已连接","success");
     refreshData();
-    // 监听切换账号/链
     window.ethereum.on("accountsChanged",()=>location.reload());
     window.ethereum.on("chainChanged",()=>location.reload());
   }catch(e){
@@ -331,7 +318,6 @@ async function refreshData(){
     if(sp)sp.textContent=fmt(price);
     if(st)st.textContent=fmt(twap);
     if(sv)sv.textContent=fmt(vault,2)+" BONE";
-    // 追加到图表
     const bn=await readProvider.getBlockNumber();
     const pv=parseFloat(fe(price));
     if(priceHistory.length===0||priceHistory[priceHistory.length-1].block!==bn){
@@ -354,21 +340,19 @@ async function loadPositions(){
       memeReadOnly.getShortPnL(account).catch(()=>0n),
       readProvider.getBalance(account)
     ]);
-    // 更新全局余额
     userBoneBal=boneBal;
     userAmeBal=ameBal;
-    // 更新 header 余额显示
     const hb=$("#h-bone"),ha=$("#h-ame");
     if(hb)hb.textContent=fmt(userBoneBal,4);
     if(ha)ha.textContent=fmtShort(userAmeBal);
-    // 更新交易面板余额
     renderTradePanel();
 
     let html="";
-    // 账户资产概览
     let estLongVal=0n;
     if(ameBal>0n){try{estLongVal=await memeReadOnly.estimateLongPayout(ameBal);}catch(e){}}
-    const totalAsset=boneBal+estLongVal+(shortPos.margin>0n?shortPos.margin:0n)+(shortPnl>0n?shortPnl:0n);
+    let estShortVal=0n;
+    if(shortPos.points>0n){try{estShortVal=await memeReadOnly.estimateShortPayout(account,shortPos.points);}catch(e){}}
+    const totalAsset=boneBal+estLongVal+estShortVal;
     html+=`
       <div class="account-overview">
         <div class="ao-title">账户资产</div>
@@ -376,11 +360,10 @@ async function loadPositions(){
           <div class="ao-item"><span class="ao-label">BONE 余额</span><span class="ao-val">${fmt(boneBal,4)}</span></div>
           <div class="ao-item"><span class="ao-label">AME 余额</span><span class="ao-val">${fmtShort(ameBal)}</span></div>
           <div class="ao-item"><span class="ao-label">多仓估值 (BONE)</span><span class="ao-val">${ameBal>0n?fmt(estLongVal,4):"0.0000"}</span></div>
-          <div class="ao-item"><span class="ao-label">空仓保证金</span><span class="ao-val">${shortPos.margin>0n?fmt(shortPos.margin,4):"0.0000"}</span></div>
+          <div class="ao-item"><span class="ao-label">空仓估值 (BONE)</span><span class="ao-val">${shortPos.points>0n?fmt(estShortVal,4):"0.0000"}</span></div>
         </div>
       </div>`;
 
-    // Long position (AME balance)
     const ameVal=ameBal;
     if(ameVal>0n){
       let estPayout="--";
@@ -397,19 +380,21 @@ async function loadPositions(){
           <button class="btn btn-outline" style="width:100%" onclick="doCloseLong()">平多</button>
         </div>`;
     }
-    // Short position
     if(shortPos.margin>0n){
       const pnlVal=shortPnl;
       const pnlClass=pnlVal>=0n?"pnl-pos":"pnl-neg";
       const pnlSign=pnlVal>=0n?"+":"";
+      let estShortPayout="--";
+      try{const esp=await memeReadOnly.estimateShortPayout(account,shortPos.points);estShortPayout=fmt(esp)+" BONE";}catch(e){}
       html+=`
         <div class="position-card">
           <div style="margin-bottom:8px"><span class="badge badge-short">SHORT</span></div>
           <div class="row"><span class="k">保证金</span><span>${fmt(shortPos.margin)} BONE</span></div>
-          <div class="row"><span class="k">仓位大小</span><span>${fmtShort(shortPos.size)}</span></div>
+          <div class="row"><span class="k">仓位大小</span><span>${fmtShort(shortPos.baseSize)}</span></div>
           <div class="row"><span class="k">开仓价值</span><span>${fmt(shortPos.openNotional)} BONE</span></div>
           <div class="row"><span class="k">Points</span><span>${fmtShort(shortPos.points)}</span></div>
           <div class="row"><span class="k">盈亏</span><span class="${pnlClass}">${pnlSign}${fmt(pnlVal)} BONE</span></div>
+          <div class="row"><span class="k">预估平仓收益</span><span>${estShortPayout}</span></div>
           <div class="input-group" style="margin-top:10px">
             <label>平仓 Points 数量</label>
             <input type="number" id="closeShortAmt" placeholder="全部平仓留空" step="0.01">
@@ -431,15 +416,16 @@ async function estimateLong(){
   const v=$("#longAmount")?.value;
   if(!v||parseFloat(v)<=0){el.textContent="";return;}
   try{
-    // simple estimation: compute from vAMM math
     const amt=pe(v);
-    const [X,Y,K,fee]=await Promise.all([memeReadOnly.X(),memeReadOnly.Y(),memeReadOnly.K(),memeReadOnly.openFeeRate()]);
+    const [vX,vY,K_val,fee]=await Promise.all([memeReadOnly.virtualX(),memeReadOnly.virtualY(),memeReadOnly.K(),memeReadOnly.openFeeRate()]);
     const feeAmt=amt*fee/10000n;
     const net=amt-feeAmt;
-    const newX=X+net;
-    const newY=K/newX;
-    const dy=Y-newY;
-    el.textContent=`预计获得 ~${fmtShort(dy*100000n)} AME（手续费 ${fmt(feeAmt,6)} BONE）`;
+    const newY=vY+net;
+    // virtualX = ceilDiv(K, virtualY) => K / newY (approximate)
+    const newX=K_val/newY;
+    const baseSize=vX-newX;
+    const ameAmount=baseSize*100000n;
+    el.textContent=`预计获得 ~${fmtShort(ameAmount)} AME（手续费 ${fmt(feeAmt,6)} BONE）`;
   }catch(e){el.textContent="";}
 }
 
@@ -463,7 +449,8 @@ async function doOpenLong(){
   if(!v||parseFloat(v)<=0){showToast("请输入金额","error");return;}
   const btn=$("#longBtn");btn.disabled=true;btn.textContent="处理中...";
   try{
-    const tx=await meme.openLong({value:pe(v)});
+    // minAmeOut = 0 (no slippage protection for simplicity)
+    const tx=await meme.openLong(0,{value:pe(v)});
     showToast("交易已提交，等待确认...","info");
     await tx.wait();
     showToast("开多成功！","success");
@@ -481,7 +468,8 @@ async function doOpenShort(){
   if(!v||parseFloat(v)<=0){showToast("请输入金额","error");return;}
   const btn=$("#shortBtn");btn.disabled=true;btn.textContent="处理中...";
   try{
-    const tx=await meme.openShort({value:pe(v)});
+    // minPoints = 0 (no slippage protection for simplicity)
+    const tx=await meme.openShort(0,{value:pe(v)});
     showToast("交易已提交，等待确认...","info");
     await tx.wait();
     showToast("开空成功！","success");
@@ -512,7 +500,8 @@ async function doCloseLong(){
       await appTx.wait();
       showToast("授权成功，正在平仓...","info");
     }
-    const tx=await meme.closeLong(amt);
+    // minPayout = 0
+    const tx=await meme.closeLong(amt,0);
     showToast("交易已提交...","info");
     await tx.wait();
     showToast("平多成功！","success");
@@ -534,7 +523,8 @@ async function doCloseShort(){
       amt=pe(amt);
     }
     if(amt<=0n){showToast("无可平仓位","error");return;}
-    const tx=await meme.closeShort(amt);
+    // minPayout = 0
+    const tx=await meme.closeShort(amt,0);
     showToast("交易已提交...","info");
     await tx.wait();
     showToast("平空成功！","success");
@@ -549,7 +539,6 @@ async function doCloseShort(){
 renderHeader();
 renderMain();
 refreshData();
-// 自动刷新
 refreshTimer=setInterval(refreshData,15000);
 </script>
 </body>
