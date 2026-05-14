@@ -2,84 +2,153 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>AME - A Meme Coin</title>
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --bg:#0a0e17;--card:#111827;--border:#1e293b;--accent:#6366f1;
-  --green:#22c55e;--red:#ef4444;--text:#e2e8f0;--muted:#94a3b8;
+  --bg:#0a0e17;--card:#111827;--card2:#0d1320;--border:#1e293b;
+  --accent:#6366f1;--accent2:#818cf8;
+  --green:#22c55e;--green-bg:rgba(34,197,94,.12);
+  --red:#ef4444;--red-bg:rgba(239,68,68,.12);
+  --text:#e2e8f0;--muted:#94a3b8;--dim:#64748b;
   --hover:#1e1b4b;--glow:rgba(99,102,241,.15);
 }
-body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
-header{display:flex;justify-content:space-between;align-items:center;padding:16px 24px;border-bottom:1px solid var(--border);background:var(--card)}
-header .logo{font-size:22px;font-weight:800;background:linear-gradient(135deg,#6366f1,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-header .logo span{font-size:12px;font-weight:400;color:var(--muted);-webkit-text-fill-color:var(--muted);margin-left:8px}
-.btn{padding:10px 20px;border-radius:8px;border:none;cursor:pointer;font-weight:600;font-size:14px;transition:all .2s}
-.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:#4f46e5}
-.btn-green{background:var(--green);color:#fff}.btn-green:hover{background:#16a34a}
-.btn-red{background:var(--red);color:#fff}.btn-red:hover{background:#dc2626}
+html{font-size:16px;-webkit-tap-highlight-color:transparent}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5}
+
+/* ---- Header ---- */
+header{display:flex;justify-content:space-between;align-items:center;padding:14px 24px;border-bottom:1px solid var(--border);background:var(--card);position:sticky;top:0;z-index:100;backdrop-filter:blur(12px)}
+header .logo{font-size:24px;font-weight:800;background:linear-gradient(135deg,#6366f1,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-.5px}
+header .logo span{font-size:11px;font-weight:500;color:var(--muted);-webkit-text-fill-color:var(--muted);margin-left:8px;letter-spacing:0}
+.header-right{display:flex;align-items:center;gap:10px}
+.bal-group{display:flex;gap:8px;align-items:center}
+.bal-chip{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:12px;display:flex;align-items:center;gap:5px}
+.bal-chip .bl{color:var(--dim);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.bal-chip .bv{font-weight:700;color:var(--text);font-size:13px}
+
+/* ---- Buttons ---- */
+.btn{padding:10px 20px;border-radius:10px;border:none;cursor:pointer;font-weight:600;font-size:14px;transition:all .2s;letter-spacing:-.2px}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:#4f46e5;box-shadow:0 0 20px rgba(99,102,241,.3)}
+.btn-green{background:var(--green);color:#fff}.btn-green:hover{background:#16a34a;box-shadow:0 0 20px rgba(34,197,94,.3)}
+.btn-red{background:var(--red);color:#fff}.btn-red:hover{background:#dc2626;box-shadow:0 0 20px rgba(239,68,68,.3)}
 .btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}.btn-outline:hover{border-color:var(--accent);background:var(--glow)}
-.btn:disabled{opacity:.5;cursor:not-allowed}
-.wallet-btn{display:flex;align-items:center;gap:8px}
-.wallet-btn .dot{width:8px;height:8px;border-radius:50%;background:var(--green)}
-.header-right{display:flex;align-items:center;gap:12px}
-.bal-group{display:flex;gap:10px;align-items:center}
-.bal-chip{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:13px;display:flex;align-items:center;gap:6px}
-.bal-chip .bl{color:var(--muted);font-size:11px;margin-right:2px}
-.bal-chip .bv{font-weight:700;color:var(--text)}
-.account-overview{background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(167,139,250,.06));border:1px solid rgba(99,102,241,.2);border-radius:10px;padding:16px;margin-bottom:14px}
-.account-overview .ao-title{font-size:13px;color:var(--muted);margin-bottom:10px;font-weight:500}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.wallet-btn{display:flex;align-items:center;gap:8px;font-size:13px}
+.wallet-btn .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green)}
+
+/* ---- Main ---- */
+main{max-width:960px;margin:0 auto;padding:20px 16px 60px}
+
+/* ---- Stats ---- */
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px}
+.stat-item{text-align:center;padding:18px 12px;background:linear-gradient(135deg,rgba(99,102,241,.06),rgba(99,102,241,.02));border-radius:14px;border:1px solid rgba(99,102,241,.1)}
+.stat-item .label{font-size:11px;color:var(--dim);margin-bottom:6px;text-transform:uppercase;letter-spacing:.8px;font-weight:600}
+.stat-item .value{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+
+/* ---- Grid ---- */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+
+/* ---- Card ---- */
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;transition:border-color .2s}
+.card h3{font-size:15px;margin-bottom:16px;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:8px}
+
+/* ---- Tabs ---- */
+.tabs{display:flex;gap:4px;margin-bottom:16px;background:var(--bg);padding:4px;border-radius:10px}
+.tab{flex:1;padding:10px;text-align:center;border-radius:8px;cursor:pointer;font-weight:600;font-size:14px;transition:all .2s;border:none;color:var(--muted);background:transparent}
+.tab.active-long{background:var(--green-bg);color:var(--green)}
+.tab.active-short{background:var(--red-bg);color:var(--red)}
+
+/* ---- Input ---- */
+.input-group{margin-bottom:14px}
+.input-group label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:500}
+.input-group input{width:100%;padding:12px 14px;background:var(--bg);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:15px;outline:none;transition:border .2s;font-family:inherit;font-variant-numeric:tabular-nums}
+.input-group input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(99,102,241,.1)}
+.input-group input::placeholder{color:var(--dim)}
+
+/* ---- Percentage Buttons ---- */
+.pct-row{display:flex;gap:6px;margin-top:8px}
+.pct-btn{flex:1;padding:6px 0;text-align:center;border-radius:6px;border:1px solid var(--border);background:var(--card2);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+.pct-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--glow)}
+.pct-btn:active{transform:scale(.95)}
+.pct-btn.max-style{background:rgba(99,102,241,.12);color:var(--accent);border-color:rgba(99,102,241,.3)}
+.pct-btn.max-style:hover{background:rgba(99,102,241,.2);border-color:var(--accent)}
+
+/* ---- Balance Hint ---- */
+.balance-hint{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--dim);margin-top:6px}
+.balance-hint .avail{font-weight:500}
+
+/* ---- Estimate ---- */
+.est{font-size:13px;color:var(--muted);margin-bottom:12px;min-height:20px;padding:8px 12px;background:rgba(99,102,241,.04);border-radius:8px;border:1px solid rgba(99,102,241,.06);display:none}
+.est.show{display:block}
+
+/* ---- Account Overview ---- */
+.account-overview{background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(167,139,250,.04));border:1px solid rgba(99,102,241,.15);border-radius:12px;padding:16px;margin-bottom:14px}
+.account-overview .ao-title{font-size:12px;color:var(--dim);margin-bottom:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
 .ao-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .ao-item{display:flex;flex-direction:column;gap:2px}
-.ao-item .ao-label{font-size:11px;color:var(--muted)}
-.ao-item .ao-val{font-size:16px;font-weight:700}
-.max-btn{background:var(--accent);color:#fff;border:none;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;cursor:pointer;margin-left:6px;transition:background .2s}
-.max-btn:hover{background:#4f46e5}
-.balance-hint{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:4px}
-main{max-width:1200px;margin:0 auto;padding:24px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-@media(max-width:768px){.grid{grid-template-columns:1fr}}
-.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px}
-.card h3{font-size:16px;margin-bottom:16px;color:var(--muted);font-weight:500;display:flex;align-items:center;gap:8px}
-.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px}
-.stat-item{text-align:center;padding:16px;background:rgba(99,102,241,.06);border-radius:10px;border:1px solid rgba(99,102,241,.1)}
-.stat-item .label{font-size:12px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
-.stat-item .value{font-size:22px;font-weight:700}
-.input-group{margin-bottom:14px}
-.input-group label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
-.input-group input{width:100%;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:15px;outline:none;transition:border .2s}
-.input-group input:focus{border-color:var(--accent)}
-.input-group .hint{font-size:11px;color:var(--muted);margin-top:4px}
-.tabs{display:flex;gap:4px;margin-bottom:16px;background:var(--bg);padding:4px;border-radius:8px}
-.tab{flex:1;padding:10px;text-align:center;border-radius:6px;cursor:pointer;font-weight:600;font-size:14px;transition:all .2s;border:none;color:var(--muted);background:transparent}
-.tab.active-long{background:rgba(34,197,94,.15);color:var(--green)}
-.tab.active-short{background:rgba(239,68,68,.15);color:var(--red)}
-.position-card{background:var(--bg);border-radius:8px;padding:14px;margin-bottom:10px;border:1px solid var(--border)}
+.ao-item .ao-label{font-size:11px;color:var(--dim)}
+.ao-item .ao-val{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+
+/* ---- Position Card ---- */
+.position-card{background:var(--bg);border-radius:12px;padding:14px;margin-bottom:10px;border:1px solid var(--border);transition:border-color .2s}
+.position-card:hover{border-color:rgba(99,102,241,.3)}
 .position-card .row{display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px}
-.position-card .row .k{color:var(--muted)}
-.pnl-pos{color:var(--green)}.pnl-neg{color:var(--red)}
-.chart-wrap{position:relative;height:300px;margin-bottom:10px}
-.toast{position:fixed;bottom:24px;right:24px;padding:14px 20px;border-radius:10px;font-size:14px;z-index:999;max-width:400px;box-shadow:0 4px 20px rgba(0,0,0,.4);transition:all .3s}
+.position-card .row .k{color:var(--dim)}
+.position-card .row span:last-child{font-weight:500;font-variant-numeric:tabular-nums}
+.pnl-pos{color:var(--green)!important}.pnl-neg{color:var(--red)!important}
+.badge{display:inline-block;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:.3px}
+.badge-long{background:var(--green-bg);color:var(--green)}
+.badge-short{background:var(--red-bg);color:var(--red)}
+
+/* ---- Toast ---- */
+.toast{position:fixed;bottom:24px;right:24px;padding:14px 20px;border-radius:12px;font-size:13px;z-index:999;max-width:380px;box-shadow:0 8px 32px rgba(0,0,0,.5);transition:all .3s;font-weight:500;backdrop-filter:blur(12px)}
 .toast.hidden{opacity:0;transform:translateY(20px);pointer-events:none}
-.toast.success{background:#065f46;border:1px solid var(--green);color:var(--green)}
-.toast.error{background:#7f1d1d;border:1px solid var(--red);color:#fca5a5}
-.toast.info{background:#1e1b4b;border:1px solid var(--accent);color:#c7d2fe}
-.empty{text-align:center;padding:30px;color:var(--muted);font-size:14px}
+.toast.success{background:rgba(6,95,70,.9);border:1px solid var(--green);color:#bbf7d0}
+.toast.error{background:rgba(127,29,29,.9);border:1px solid var(--red);color:#fca5a5}
+.toast.info{background:rgba(30,27,75,.9);border:1px solid var(--accent);color:#c7d2fe}
+
+.empty{text-align:center;padding:40px 20px;color:var(--dim);font-size:14px}
 .full-width{grid-column:1/-1}
-.action-row{display:flex;gap:10px;margin-top:4px}
-.action-row .btn{flex:1}
-.est{font-size:13px;color:var(--muted);margin-bottom:10px;min-height:20px}
-.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600}
-.badge-long{background:rgba(34,197,94,.15);color:var(--green)}
-.badge-short{background:rgba(239,68,68,.15);color:var(--red)}
-#price-history-section{margin-top:20px}
-.refresh-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;transition:transform .3s}
-.refresh-btn:hover{color:var(--text)}
-.refresh-btn.spinning{animation:spin 1s linear infinite}
+
+/* ---- Refresh ---- */
+.refresh-btn{background:none;border:none;color:var(--dim);cursor:pointer;font-size:18px;transition:all .3s;padding:4px;border-radius:6px}
+.refresh-btn:hover{color:var(--text);background:rgba(255,255,255,.05)}
+.refresh-btn.spinning{animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---- Footer ---- */
+.footer{text-align:center;padding:20px;font-size:11px;color:var(--dim);border-top:1px solid var(--border);margin-top:40px}
+
+/* ---- Responsive ---- */
+@media(max-width:768px){
+  header{padding:12px 16px;flex-wrap:wrap;gap:10px}
+  header .logo{font-size:20px}
+  .header-right{width:100%;justify-content:space-between}
+  .bal-group{gap:6px}
+  .bal-chip{padding:4px 8px;font-size:11px}
+  .bal-chip .bv{font-size:12px}
+  main{padding:16px 12px 40px}
+  .stats{grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .stat-item{padding:12px 8px}
+  .stat-item .label{font-size:10px}
+  .stat-item .value{font-size:16px}
+  .grid{grid-template-columns:1fr;gap:12px}
+  .card{padding:16px;border-radius:14px}
+  .toast{left:16px;right:16px;bottom:16px;max-width:none}
+  .pct-row{gap:4px}
+  .pct-btn{padding:8px 0;font-size:11px}
+  .ao-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .ao-item .ao-val{font-size:13px}
+}
+@media(max-width:360px){
+  .stats{grid-template-columns:1fr}
+  .ao-grid{grid-template-columns:1fr}
+  .bal-group{flex-wrap:wrap}
+}
 </style>
 </head>
 <body>
@@ -102,21 +171,23 @@ const TOKEN_ABI=[{"inputs":[{"name":"","type":"address"}],"name":"balanceOf","ou
 /* ---- state ---- */
 let provider,signer,meme,memeRead,token,tokenRead,account=null;
 let currentTab="long";
-let priceChart=null;
-let priceHistory=[];
-let refreshTimer=null;
 let userBoneBal=0n,userAmeBal=0n;
 
 const readProvider=new ethers.JsonRpcProvider(RPC);
 const memeReadOnly=new ethers.Contract(MEME_ADDR,MEME_ABI,readProvider);
 
 /* ---- utils ---- */
-const fmt=(v,d=4)=>parseFloat(ethers.formatEther(v)).toFixed(d);
-const fmtShort=(v)=>parseFloat(ethers.formatEther(v)).toFixed(6);
 const pe=ethers.parseEther;
 const fe=ethers.formatEther;
 const $=s=>document.querySelector(s);
 const shortAddr=a=>a.slice(0,6)+"..."+a.slice(-4);
+
+// Format with specified decimals, no trailing zero removal
+const fmt=(v,d=4)=>parseFloat(fe(v)).toFixed(d);
+// Full 18 decimal display for MAX button
+const fmtFull18=(v)=>fe(v);
+// Short format
+const fmtShort=(v)=>parseFloat(fe(v)).toFixed(6);
 
 function showToast(msg,type="info",ms=4000){
   const t=$("#toast");t.textContent=msg;t.className=`toast ${type}`;
@@ -133,13 +204,36 @@ function renderHeader(){
     </div>`;
   }
   $("#header").innerHTML=`
-    <div class="logo">AME<span>A Meme Coin · Puppynet</span></div>
+    <div class="logo">AME<span>Puppynet</span></div>
     <div class="header-right">
       ${balHtml}
       ${account
         ?`<button class="btn btn-outline wallet-btn" onclick="disconnect()"><span class="dot"></span>${shortAddr(account)}</button>`
         :`<button class="btn btn-primary" onclick="connect()">连接钱包</button>`}
     </div>`;
+}
+
+/* ---- percentage button helpers ---- */
+function fillPct(inputId,pct,rawBalance){
+  const el=$("#"+inputId);if(!el||rawBalance<=0n)return;
+  let val;
+  if(pct>=100){
+    // MAX: show full 18 decimals
+    val=fmtFull18(rawBalance);
+  }else{
+    val=fmtFull18(rawBalance*BigInt(pct)/100n);
+  }
+  el.value=val;
+  el.dispatchEvent(new Event("input"));
+}
+
+function makePctButtons(inputId,balanceGetter){
+  return `<div class="pct-row">
+    <button class="pct-btn" onclick="${balanceGetter};fillPct('${inputId}',25,_bal)">25%</button>
+    <button class="pct-btn" onclick="${balanceGetter};fillPct('${inputId}',50,_bal)">50%</button>
+    <button class="pct-btn" onclick="${balanceGetter};fillPct('${inputId}',75,_bal)">75%</button>
+    <button class="pct-btn max-style" onclick="${balanceGetter};fillPct('${inputId}',100,_bal)">MAX</button>
+  </div>`;
 }
 
 /* ---- render main ---- */
@@ -152,7 +246,7 @@ function renderMain(){
     </div>
     <div class="grid">
       <div class="card">
-        <h3>交易 <button class="refresh-btn" id="refreshBtn" onclick="refreshData()" title="刷新">&#x21bb;</button></h3>
+        <h3>交易 <button class="refresh-btn" id="refreshBtn" onclick="refreshData()" title="刷新数据">&#x21bb;</button></h3>
         <div class="tabs">
           <button class="tab ${currentTab==='long'?'active-long':''}" onclick="switchTab('long')">做多 Long</button>
           <button class="tab ${currentTab==='short'?'active-short':''}" onclick="switchTab('short')">做空 Short</button>
@@ -163,108 +257,48 @@ function renderMain(){
         <h3>我的持仓</h3>
         <div id="positions"><div class="empty">连接钱包查看持仓</div></div>
       </div>
-      <div class="card full-width" id="price-history-section">
-        <h3>价格走势</h3>
-        <div class="chart-wrap"><canvas id="priceCanvas"></canvas></div>
-      </div>
-    </div>`;
+    </div>
+    <div class="footer">AME &middot; A Meme Coin on Puppynet &middot; DYOR</div>`;
   renderTradePanel();
-  initChart();
 }
 
 function renderTradePanel(){
   const panel=$("#trade-panel");
   if(!panel)return;
   const boneStr=account?fmt(userBoneBal,4):"--";
+  // For BONE pct buttons, we reserve 0.01 for gas
+  const bonePctGetter="var _bal=userBoneBal>10000000000000000n?userBoneBal-10000000000000000n:userBoneBal";
+
   if(currentTab==="long"){
     panel.innerHTML=`
       <div class="input-group">
         <label>投入金额 (BONE)</label>
-        <input type="number" id="longAmount" placeholder="0.0" step="0.01" min="0" oninput="estimateLong()">
+        <input type="text" inputmode="decimal" id="longAmount" placeholder="0.0" oninput="estimateLong()">
         <div class="balance-hint">
-          <span>最小交易: 0.0001 BONE · 手续费 0.5%</span>
-          <span>可用: ${boneStr} BONE <button class="max-btn" onclick="fillMaxBone('longAmount')">MAX</button></span>
+          <span>最小: 0.0001 BONE &middot; 手续费 0.5%</span>
+          <span class="avail">可用: ${boneStr}</span>
         </div>
+        ${makePctButtons("longAmount",bonePctGetter)}
       </div>
       <div class="est" id="longEst"></div>
-      <button class="btn btn-green" style="width:100%" onclick="doOpenLong()" id="longBtn">开多</button>`;
+      <button class="btn btn-green" style="width:100%;padding:14px" onclick="doOpenLong()" id="longBtn">开多</button>`;
   }else{
     panel.innerHTML=`
       <div class="input-group">
         <label>保证金 (BONE)</label>
-        <input type="number" id="shortAmount" placeholder="0.0" step="0.01" min="0">
+        <input type="text" inputmode="decimal" id="shortAmount" placeholder="0.0">
         <div class="balance-hint">
-          <span>最小交易: 0.0001 BONE · 手续费 0.5%</span>
-          <span>可用: ${boneStr} BONE <button class="max-btn" onclick="fillMaxBone('shortAmount')">MAX</button></span>
+          <span>最小: 0.0001 BONE &middot; 手续费 0.5%</span>
+          <span class="avail">可用: ${boneStr}</span>
         </div>
+        ${makePctButtons("shortAmount",bonePctGetter)}
       </div>
       <div class="est" id="shortEst"></div>
-      <button class="btn btn-red" style="width:100%" onclick="doOpenShort()" id="shortBtn">开空</button>`;
+      <button class="btn btn-red" style="width:100%;padding:14px" onclick="doOpenShort()" id="shortBtn">开空</button>`;
   }
-}
-
-function fillMaxBone(inputId){
-  const el=$("#"+inputId);if(!el||userBoneBal<=0n)return;
-  let val=userBoneBal;
-  const reserve=pe("0.01");
-  if(val>reserve)val=val-reserve;
-  el.value=parseFloat(fe(val)).toFixed(6);
-  el.dispatchEvent(new Event("input"));
 }
 
 function switchTab(t){currentTab=t;renderMain();refreshData();}
-
-/* ---- chart ---- */
-function initChart(){
-  const ctx=document.getElementById("priceCanvas");
-  if(!ctx)return;
-  priceChart=new Chart(ctx,{
-    type:"line",
-    data:{labels:[],datasets:[{
-      label:"标记价格",data:[],
-      borderColor:"#6366f1",backgroundColor:"rgba(99,102,241,0.08)",
-      fill:true,tension:0.3,pointRadius:3,pointBackgroundColor:"#6366f1",borderWidth:2
-    }]},
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false}},
-      scales:{
-        x:{ticks:{color:"#94a3b8",maxTicksLimit:10},grid:{color:"rgba(30,41,59,0.5)"}},
-        y:{ticks:{color:"#94a3b8",callback:v=>v.toFixed(4)},grid:{color:"rgba(30,41,59,0.5)"}}
-      }
-    }
-  });
-  loadPriceHistory();
-}
-
-async function loadPriceHistory(){
-  try{
-    const filter=memeReadOnly.filters.PriceSnapshot();
-    const logs=await memeReadOnly.queryFilter(filter,0,"latest");
-    priceHistory=logs.map(l=>({
-      block:Number(l.args[0]),
-      price:parseFloat(fe(l.args[1]))
-    }));
-    const cur=await memeReadOnly.getMarkPrice();
-    const bn=await readProvider.getBlockNumber();
-    priceHistory.push({block:bn,price:parseFloat(fe(cur))});
-    updateChart();
-  }catch(e){
-    console.warn("loadPriceHistory:",e);
-    try{
-      const cur=await memeReadOnly.getMarkPrice();
-      priceHistory=[{block:0,price:parseFloat(fe(cur))}];
-      updateChart();
-    }catch(e2){}
-  }
-}
-
-function updateChart(){
-  if(!priceChart)return;
-  priceChart.data.labels=priceHistory.map(p=>"#"+p.block);
-  priceChart.data.datasets[0].data=priceHistory.map(p=>p.price);
-  priceChart.update();
-}
 
 /* ---- wallet ---- */
 async function connect(){
@@ -306,10 +340,10 @@ async function connect(){
 
 function disconnect(){account=null;signer=null;meme=null;token=null;userBoneBal=0n;userAmeBal=0n;renderHeader();renderTradePanel();$("#positions").innerHTML='<div class="empty">连接钱包查看持仓</div>';}
 
-/* ---- data ---- */
+/* ---- data refresh (manual only, no auto timer) ---- */
 async function refreshData(){
   const btn=$("#refreshBtn");
-  if(btn){btn.classList.add("spinning");setTimeout(()=>btn.classList.remove("spinning"),1000);}
+  if(btn){btn.classList.add("spinning");setTimeout(()=>btn.classList.remove("spinning"),800);}
   try{
     const [price,twap,vault]=await Promise.all([
       memeReadOnly.getMarkPrice(),memeReadOnly.getTWAP(),memeReadOnly.vault()
@@ -318,13 +352,6 @@ async function refreshData(){
     if(sp)sp.textContent=fmt(price);
     if(st)st.textContent=fmt(twap);
     if(sv)sv.textContent=fmt(vault,2)+" BONE";
-    const bn=await readProvider.getBlockNumber();
-    const pv=parseFloat(fe(price));
-    if(priceHistory.length===0||priceHistory[priceHistory.length-1].block!==bn){
-      priceHistory.push({block:bn,price:pv});
-      if(priceHistory.length>100)priceHistory.shift();
-      updateChart();
-    }
   }catch(e){console.warn("refreshData:",e);}
   if(account)loadPositions();
 }
@@ -352,15 +379,15 @@ async function loadPositions(){
     if(ameBal>0n){try{estLongVal=await memeReadOnly.estimateLongPayout(ameBal);}catch(e){}}
     let estShortVal=0n;
     if(shortPos.points>0n){try{estShortVal=await memeReadOnly.estimateShortPayout(account,shortPos.points);}catch(e){}}
-    const totalAsset=boneBal+estLongVal+estShortVal;
+
     html+=`
       <div class="account-overview">
-        <div class="ao-title">账户资产</div>
+        <div class="ao-title">账户总览</div>
         <div class="ao-grid">
           <div class="ao-item"><span class="ao-label">BONE 余额</span><span class="ao-val">${fmt(boneBal,4)}</span></div>
           <div class="ao-item"><span class="ao-label">AME 余额</span><span class="ao-val">${fmtShort(ameBal)}</span></div>
-          <div class="ao-item"><span class="ao-label">多仓估值 (BONE)</span><span class="ao-val">${ameBal>0n?fmt(estLongVal,4):"0.0000"}</span></div>
-          <div class="ao-item"><span class="ao-label">空仓估值 (BONE)</span><span class="ao-val">${shortPos.points>0n?fmt(estShortVal,4):"0.0000"}</span></div>
+          <div class="ao-item"><span class="ao-label">多仓估值</span><span class="ao-val">${ameBal>0n?fmt(estLongVal,4):"0.0000"} BONE</span></div>
+          <div class="ao-item"><span class="ao-label">空仓估值</span><span class="ao-val">${shortPos.points>0n?fmt(estShortVal,4):"0.0000"} BONE</span></div>
         </div>
       </div>`;
 
@@ -368,16 +395,24 @@ async function loadPositions(){
     if(ameVal>0n){
       let estPayout="--";
       try{const ep=await memeReadOnly.estimateLongPayout(ameVal);estPayout=fmt(ep)+" BONE";}catch(e){}
+      // AME balance pct getter
+      const amePctGetter="var _bal=userAmeBal";
       html+=`
         <div class="position-card">
-          <div style="margin-bottom:8px"><span class="badge badge-long">LONG</span></div>
+          <div style="margin-bottom:10px"><span class="badge badge-long">LONG</span></div>
           <div class="row"><span class="k">持有 AME</span><span>${fmtShort(ameVal)}</span></div>
           <div class="row"><span class="k">预估平仓收益</span><span>${estPayout}</span></div>
-          <div class="input-group" style="margin-top:10px">
+          <div class="input-group" style="margin-top:12px">
             <label>平仓数量 (AME)</label>
-            <input type="number" id="closeLongAmt" placeholder="全部平仓留空" step="0.01">
+            <input type="text" inputmode="decimal" id="closeLongAmt" placeholder="留空则全部平仓">
+            <div class="pct-row">
+              <button class="pct-btn" onclick="var _bal=userAmeBal;fillPct('closeLongAmt',25,_bal)">25%</button>
+              <button class="pct-btn" onclick="var _bal=userAmeBal;fillPct('closeLongAmt',50,_bal)">50%</button>
+              <button class="pct-btn" onclick="var _bal=userAmeBal;fillPct('closeLongAmt',75,_bal)">75%</button>
+              <button class="pct-btn max-style" onclick="var _bal=userAmeBal;fillPct('closeLongAmt',100,_bal)">MAX</button>
+            </div>
           </div>
-          <button class="btn btn-outline" style="width:100%" onclick="doCloseLong()">平多</button>
+          <button class="btn btn-outline" style="width:100%;padding:12px" onclick="doCloseLong()">平多</button>
         </div>`;
     }
     if(shortPos.margin>0n){
@@ -385,24 +420,33 @@ async function loadPositions(){
       const pnlClass=pnlVal>=0n?"pnl-pos":"pnl-neg";
       const pnlSign=pnlVal>=0n?"+":"";
       let estShortPayout="--";
-      try{const esp=await memeReadOnly.estimateShortPayout(account,shortPos.points);estShortPayout=fmt(esp)+" BONE";}catch(e){}
+      const shortPoints=shortPos.points;
+      try{const esp=await memeReadOnly.estimateShortPayout(account,shortPoints);estShortPayout=fmt(esp)+" BONE";}catch(e){}
       html+=`
         <div class="position-card">
-          <div style="margin-bottom:8px"><span class="badge badge-short">SHORT</span></div>
+          <div style="margin-bottom:10px"><span class="badge badge-short">SHORT</span></div>
           <div class="row"><span class="k">保证金</span><span>${fmt(shortPos.margin)} BONE</span></div>
           <div class="row"><span class="k">仓位大小</span><span>${fmtShort(shortPos.baseSize)}</span></div>
           <div class="row"><span class="k">开仓价值</span><span>${fmt(shortPos.openNotional)} BONE</span></div>
-          <div class="row"><span class="k">Points</span><span>${fmtShort(shortPos.points)}</span></div>
+          <div class="row"><span class="k">Points</span><span>${fmtShort(shortPoints)}</span></div>
           <div class="row"><span class="k">盈亏</span><span class="${pnlClass}">${pnlSign}${fmt(pnlVal)} BONE</span></div>
           <div class="row"><span class="k">预估平仓收益</span><span>${estShortPayout}</span></div>
-          <div class="input-group" style="margin-top:10px">
+          <div class="input-group" style="margin-top:12px">
             <label>平仓 Points 数量</label>
-            <input type="number" id="closeShortAmt" placeholder="全部平仓留空" step="0.01">
+            <input type="text" inputmode="decimal" id="closeShortAmt" placeholder="留空则全部平仓">
+            <div class="pct-row">
+              <button class="pct-btn" onclick="var _bal=${shortPoints.toString()}n;fillPct('closeShortAmt',25,_bal)">25%</button>
+              <button class="pct-btn" onclick="var _bal=${shortPoints.toString()}n;fillPct('closeShortAmt',50,_bal)">50%</button>
+              <button class="pct-btn" onclick="var _bal=${shortPoints.toString()}n;fillPct('closeShortAmt',75,_bal)">75%</button>
+              <button class="pct-btn max-style" onclick="var _bal=${shortPoints.toString()}n;fillPct('closeShortAmt',100,_bal)">MAX</button>
+            </div>
           </div>
-          <button class="btn btn-outline" style="width:100%" onclick="doCloseShort()">平空</button>
+          <button class="btn btn-outline" style="width:100%;padding:12px" onclick="doCloseShort()">平空</button>
         </div>`;
     }
-    if(!html)html='<div class="empty">暂无持仓</div>';
+    if(ameVal<=0n && shortPos.margin<=0n){
+      html+='<div class="empty">暂无持仓</div>';
+    }
     box.innerHTML=html;
   }catch(e){
     console.warn("loadPositions:",e);
@@ -414,19 +458,19 @@ async function loadPositions(){
 async function estimateLong(){
   const el=$("#longEst");if(!el)return;
   const v=$("#longAmount")?.value;
-  if(!v||parseFloat(v)<=0){el.textContent="";return;}
+  if(!v||parseFloat(v)<=0){el.classList.remove("show");el.textContent="";return;}
   try{
     const amt=pe(v);
     const [vX,vY,K_val,fee]=await Promise.all([memeReadOnly.virtualX(),memeReadOnly.virtualY(),memeReadOnly.K(),memeReadOnly.openFeeRate()]);
     const feeAmt=amt*fee/10000n;
     const net=amt-feeAmt;
     const newY=vY+net;
-    // virtualX = ceilDiv(K, virtualY) => K / newY (approximate)
     const newX=K_val/newY;
     const baseSize=vX-newX;
     const ameAmount=baseSize*100000n;
-    el.textContent=`预计获得 ~${fmtShort(ameAmount)} AME（手续费 ${fmt(feeAmt,6)} BONE）`;
-  }catch(e){el.textContent="";}
+    el.textContent=`预计获得 ~${fmtShort(ameAmount)} AME (手续费 ${fmt(feeAmt,6)} BONE)`;
+    el.classList.add("show");
+  }catch(e){el.classList.remove("show");el.textContent="";}
 }
 
 /* ---- balance helper ---- */
@@ -449,11 +493,10 @@ async function doOpenLong(){
   if(!v||parseFloat(v)<=0){showToast("请输入金额","error");return;}
   const btn=$("#longBtn");btn.disabled=true;btn.textContent="处理中...";
   try{
-    // minAmeOut = 0 (no slippage protection for simplicity)
     const tx=await meme.openLong(0,{value:pe(v)});
     showToast("交易已提交，等待确认...","info");
     await tx.wait();
-    showToast("开多成功！","success");
+    showToast("开多成功!","success");
     await updateBalances();
     refreshData();
   }catch(e){
@@ -468,11 +511,10 @@ async function doOpenShort(){
   if(!v||parseFloat(v)<=0){showToast("请输入金额","error");return;}
   const btn=$("#shortBtn");btn.disabled=true;btn.textContent="处理中...";
   try{
-    // minPoints = 0 (no slippage protection for simplicity)
     const tx=await meme.openShort(0,{value:pe(v)});
     showToast("交易已提交，等待确认...","info");
     await tx.wait();
-    showToast("开空成功！","success");
+    showToast("开空成功!","success");
     await updateBalances();
     refreshData();
   }catch(e){
@@ -492,7 +534,6 @@ async function doCloseLong(){
       amt=pe(amt);
     }
     if(amt<=0n){showToast("无可平仓位","error");return;}
-    // 检查 approve
     const allowance=await tokenRead2.allowance(account,MEME_ADDR);
     if(allowance<amt){
       showToast("需要授权 AME 代币...","info");
@@ -500,11 +541,10 @@ async function doCloseLong(){
       await appTx.wait();
       showToast("授权成功，正在平仓...","info");
     }
-    // minPayout = 0
     const tx=await meme.closeLong(amt,0);
     showToast("交易已提交...","info");
     await tx.wait();
-    showToast("平多成功！","success");
+    showToast("平多成功!","success");
     await updateBalances();
     refreshData();
   }catch(e){
@@ -523,11 +563,10 @@ async function doCloseShort(){
       amt=pe(amt);
     }
     if(amt<=0n){showToast("无可平仓位","error");return;}
-    // minPayout = 0
     const tx=await meme.closeShort(amt,0);
     showToast("交易已提交...","info");
     await tx.wait();
-    showToast("平空成功！","success");
+    showToast("平空成功!","success");
     await updateBalances();
     refreshData();
   }catch(e){
@@ -539,7 +578,6 @@ async function doCloseShort(){
 renderHeader();
 renderMain();
 refreshData();
-refreshTimer=setInterval(refreshData,15000);
 </script>
 </body>
 </html>
