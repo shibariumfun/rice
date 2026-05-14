@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WoofingPump Factory Admin - BSC</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #0a0e17;
+    color: #e0e6ed;
+    min-height: 100vh;
+  }
+  .header {
+    background: linear-gradient(135deg, #0f1923 0%, #1a2332 100%);
+    border-bottom: 1px solid #1e2d3d;
+    padding: 20px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .header h1 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #f0b90b;
+  }
+  .header .chain-badge {
+    background: #f0b90b22;
+    color: #f0b90b;
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    border: 1px solid #f0b90b44;
+    margin-left: 12px;
+  }
+  .header-left { display: flex; align-items: center; }
+  #connectBtn {
+    background: #f0b90b;
+    color: #0a0e17;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  #connectBtn:hover { background: #d4a30a; }
+  #connectBtn.connected { background: #1a2332; color: #4ade80; border: 1px solid #4ade8044; }
+  .container {
+    max-width: 640px;
+    margin: 40px auto;
+    padding: 0 20px;
+  }
+  .info-bar {
+    background: #111827;
+    border: 1px solid #1e2d3d;
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    font-size: 13px;
+    color: #8899aa;
+  }
+  .info-bar .label { color: #667788; margin-bottom: 4px; }
+  .info-bar .value {
+    color: #e0e6ed;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 13px;
+    word-break: break-all;
+  }
+  .info-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .info-row:last-child { margin-bottom: 0; }
+  .balance-val { color: #f0b90b; font-weight: 600; font-size: 15px; }
+  .card {
+    background: #111827;
+    border: 1px solid #1e2d3d;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .card h2 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #f8fafc;
+  }
+  .card .desc {
+    font-size: 13px;
+    color: #667788;
+    margin-bottom: 20px;
+  }
+  .field { margin-bottom: 16px; }
+  .field label {
+    display: block;
+    font-size: 13px;
+    color: #8899aa;
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+  .field input {
+    width: 100%;
+    background: #0a0e17;
+    border: 1px solid #1e2d3d;
+    border-radius: 8px;
+    padding: 12px 14px;
+    color: #e0e6ed;
+    font-size: 14px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .field input:focus { border-color: #f0b90b66; }
+  .field input::placeholder { color: #334155; }
+  .action-btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-transfer {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: #fff;
+  }
+  .btn-transfer:hover { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
+  .btn-withdraw {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #fff;
+  }
+  .btn-withdraw:hover { background: linear-gradient(135deg, #059669, #047857); }
+  .action-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    z-index: 999;
+    transition: transform 0.3s ease;
+    max-width: 90vw;
+    word-break: break-all;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.success { background: #065f46; color: #a7f3d0; border: 1px solid #10b98144; }
+  .toast.error { background: #7f1d1d; color: #fca5a5; border: 1px solid #ef444444; }
+  .toast.info { background: #1e3a5f; color: #93c5fd; border: 1px solid #3b82f644; }
+  .warning-box {
+    background: #78350f22;
+    border: 1px solid #f59e0b33;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    font-size: 12px;
+    color: #fbbf24;
+    line-height: 1.5;
+  }
+  .current-owner {
+    font-size: 12px;
+    color: #667788;
+    margin-bottom: 16px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  .current-owner span { color: #8899aa; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>WoofingPump Factory Admin</h1>
+    <span class="chain-badge">BSC Mainnet</span>
+  </div>
+  <button id="connectBtn" onclick="connectWallet()">Connect Wallet</button>
+</div>
+
+<div class="container">
+  <div class="info-bar">
+    <div class="info-row">
+      <span class="label">Factory Contract</span>
+    </div>
+    <div class="info-row">
+      <span class="value">0xaf6d6F359a630Ec6eb2BaFDc338b86d3E84CaF66</span>
+    </div>
+    <div class="info-row" style="margin-top:12px">
+      <span class="label">Contract Balance</span>
+      <span class="balance-val" id="contractBalance">--</span>
+    </div>
+    <div class="info-row">
+      <span class="label">Current Owner</span>
+      <span class="value" id="currentOwner" style="font-size:12px">--</span>
+    </div>
+  </div>
+
+  <!-- Transfer Ownership -->
+  <div class="card">
+    <h2>Transfer Ownership</h2>
+    <p class="desc">Transfer the factory contract ownership to a new address. This action is irreversible.</p>
+    <div class="warning-box">
+      WARNING: Once transferred, you will lose all admin privileges. Double check the new owner address.
+    </div>
+    <div class="field">
+      <label>New Owner Address</label>
+      <input type="text" id="newOwnerAddr" placeholder="0x..." />
+    </div>
+    <button class="action-btn btn-transfer" onclick="transferOwnership()" id="transferBtn" disabled>
+      Transfer Ownership
+    </button>
+  </div>
+
+  <!-- Withdraw Fees -->
+  <div class="card">
+    <h2>Withdraw Fees</h2>
+    <p class="desc">Withdraw all accumulated platform fees (BNB) from the factory contract to a specified address.</p>
+    <div class="field">
+      <label>Recipient Address</label>
+      <input type="text" id="withdrawAddr" placeholder="0x..." />
+    </div>
+    <button class="action-btn btn-withdraw" onclick="withdrawAll()" id="withdrawBtn" disabled>
+      Withdraw All BNB
+    </button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const FACTORY_ADDR = '0xaf6d6F359a630Ec6eb2BaFDc338b86d3E84CaF66';
+const BSC_CHAIN_ID = '0x38';
+const FACTORY_ABI = [
+  {"inputs":[{"name":"newOwner","type":"address"}],"name":"transferOwnership","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[{"name":"to","type":"address"}],"name":"withdrawAll","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[],"name":"owner","outputs":[{"name":"","type":"address"}],"stateMutability":"view","type":"function"}
+];
+
+let provider = null;
+let signer = null;
+let contract = null;
+let userAddr = null;
+
+function showToast(msg, type = 'info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + type + ' show';
+  setTimeout(() => t.classList.remove('show'), 5000);
+}
+
+function enableButtons() {
+  document.getElementById('transferBtn').disabled = false;
+  document.getElementById('withdrawBtn').disabled = false;
+}
+
+function disableButtons() {
+  document.getElementById('transferBtn').disabled = true;
+  document.getElementById('withdrawBtn').disabled = true;
+}
+
+async function switchToBSC() {
+  try {
+    await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: BSC_CHAIN_ID }] });
+  } catch (e) {
+    if (e.code === 4902) {
+      await window.ethereum.request({
+        method: 'wallet_addEthereumChain',
+        params: [{
+          chainId: BSC_CHAIN_ID,
+          chainName: 'BNB Smart Chain',
+          nativeCurrency: { name: 'BNB', symbol: 'BNB', decimals: 18 },
+          rpcUrls: ['https://bsc-dataseed.binance.org/'],
+          blockExplorerUrls: ['https://bscscan.com/']
+        }]
+      });
+    } else { throw e; }
+  }
+}
+
+async function loadContractInfo() {
+  try {
+    const bal = await provider.getBalance(FACTORY_ADDR);
+    const ethBal = parseFloat(ethers.formatEther(bal));
+    document.getElementById('contractBalance').textContent = ethBal.toFixed(6) + ' BNB';
+    const ownerAddr = await contract.owner();
+    document.getElementById('currentOwner').textContent = ownerAddr;
+  } catch (e) {
+    console.error('loadContractInfo error:', e);
+  }
+}
+
+async function connectWallet() {
+  if (!window.ethereum) {
+    showToast('No wallet detected. Please install MetaMask or compatible wallet.', 'error');
+    return;
+  }
+  try {
+    await switchToBSC();
+    provider = new ethers.BrowserProvider(window.ethereum);
+    signer = await provider.getSigner();
+    userAddr = await signer.getAddress();
+    contract = new ethers.Contract(FACTORY_ADDR, FACTORY_ABI, signer);
+
+    const btn = document.getElementById('connectBtn');
+    btn.textContent = userAddr.slice(0, 6) + '...' + userAddr.slice(-4);
+    btn.classList.add('connected');
+    enableButtons();
+    showToast('Wallet connected: ' + userAddr.slice(0, 6) + '...' + userAddr.slice(-4), 'success');
+    await loadContractInfo();
+  } catch (e) {
+    showToast('Connection failed: ' + (e.message || e), 'error');
+  }
+}
+
+async function transferOwnership() {
+  const newOwner = document.getElementById('newOwnerAddr').value.trim();
+  if (!ethers.isAddress(newOwner)) {
+    showToast('Invalid address format.', 'error');
+    return;
+  }
+  if (newOwner.toLowerCase() === '0x0000000000000000000000000000000000000000') {
+    showToast('Cannot transfer to zero address.', 'error');
+    return;
+  }
+  if (!confirm('Are you sure you want to transfer ownership to:\n' + newOwner + '\n\nThis action is irreversible!')) return;
+  try {
+    document.getElementById('transferBtn').disabled = true;
+    document.getElementById('transferBtn').textContent = 'Sending Transaction...';
+    const tx = await contract.transferOwnership(newOwner);
+    showToast('Transaction sent: ' + tx.hash, 'info');
+    await tx.wait();
+    showToast('Ownership transferred successfully!', 'success');
+    await loadContractInfo();
+  } catch (e) {
+    const msg = e.reason || e.message || 'Transaction failed';
+    showToast('Error: ' + msg, 'error');
+  } finally {
+    document.getElementById('transferBtn').disabled = false;
+    document.getElementById('transferBtn').textContent = 'Transfer Ownership';
+  }
+}
+
+async function withdrawAll() {
+  const to = document.getElementById('withdrawAddr').value.trim();
+  if (!ethers.isAddress(to)) {
+    showToast('Invalid address format.', 'error');
+    return;
+  }
+  if (to.toLowerCase() === '0x0000000000000000000000000000000000000000') {
+    showToast('Cannot withdraw to zero address.', 'error');
+    return;
+  }
+  try {
+    document.getElementById('withdrawBtn').disabled = true;
+    document.getElementById('withdrawBtn').textContent = 'Sending Transaction...';
+    const tx = await contract.withdrawAll(to);
+    showToast('Transaction sent: ' + tx.hash, 'info');
+    await tx.wait();
+    showToast('Withdrawal successful!', 'success');
+    await loadContractInfo();
+  } catch (e) {
+    const msg = e.reason || e.message || 'Transaction failed';
+    showToast('Error: ' + msg, 'error');
+  } finally {
+    document.getElementById('withdrawBtn').disabled = false;
+    document.getElementById('withdrawBtn').textContent = 'Withdraw All BNB';
+  }
+}
+
+// Listen for account/chain changes
+if (window.ethereum) {
+  window.ethereum.on('accountsChanged', () => location.reload());
+  window.ethereum.on('chainChanged', () => location.reload());
+}
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.2/ethers.umd.min.js"></script>
+</body>
+</html>
