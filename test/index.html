@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meme DApp - Puppynet</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.4/ethers.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#0a0a0f;color:#e0e0e0;min-height:100vh}
+header{background:#12121a;border-bottom:1px solid #2a2a3a;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+header h1{font-size:20px;color:#00d4ff;font-weight:700}
+header .info{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+header .chain-badge{background:#1a1a2e;border:1px solid #333;border-radius:8px;padding:6px 12px;font-size:13px;color:#aaa}
+header .chain-badge.connected{border-color:#00d4ff;color:#00d4ff}
+.btn{padding:8px 18px;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;transition:all .2s}
+.btn-primary{background:#00d4ff;color:#000}.btn-primary:hover{background:#00b8e6}
+.btn-success{background:#00c853;color:#000}.btn-success:hover{background:#00a844}
+.btn-danger{background:#ff3d57;color:#fff}.btn-danger:hover{background:#e0354d}
+.btn-warn{background:#ffab00;color:#000}.btn-warn:hover{background:#e09a00}
+.btn-secondary{background:#2a2a3a;color:#ccc;border:1px solid #3a3a4a}.btn-secondary:hover{background:#3a3a4a}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+main{max-width:1200px;margin:0 auto;padding:24px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:768px){.grid{grid-template-columns:1fr}}
+.card{background:#14141e;border:1px solid #2a2a3a;border-radius:12px;padding:20px}
+.card h2{font-size:16px;color:#00d4ff;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid #1e1e2e}
+.card h3{font-size:14px;color:#aaa;margin:12px 0 8px}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat{background:#1a1a28;border-radius:8px;padding:10px 12px}
+.stat label{font-size:11px;color:#777;text-transform:uppercase;letter-spacing:.5px}
+.stat .val{font-size:15px;font-weight:600;color:#fff;margin-top:2px;word-break:break-all}
+.stat .val.green{color:#00c853}.stat .val.red{color:#ff3d57}.stat .val.blue{color:#00d4ff}
+.input-group{margin-bottom:12px}
+.input-group label{display:block;font-size:12px;color:#888;margin-bottom:4px}
+.input-group input,.input-group select{width:100%;padding:10px 12px;background:#1a1a28;border:1px solid #2a2a3a;border-radius:8px;color:#fff;font-size:14px;outline:none}
+.input-group input:focus{border-color:#00d4ff}
+.action-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.full-width{grid-column:1/-1}
+#log{background:#0d0d14;border:1px solid #2a2a3a;border-radius:12px;padding:16px;margin-top:20px;max-height:300px;overflow-y:auto;font-family:'Courier New',monospace;font-size:13px;line-height:1.6}
+.log-entry{padding:4px 0;border-bottom:1px solid #1a1a28}
+.log-entry.success{color:#00c853}.log-entry.error{color:#ff3d57}.log-entry.info{color:#00d4ff}
+.pos-card{background:#1a1a28;border-radius:8px;padding:12px;margin-bottom:8px;border:1px solid #2a2a3a}
+.pos-card .pos-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.pos-card .pos-detail{font-size:13px;color:#aaa;margin:2px 0}
+.section-title{font-size:18px;color:#fff;margin:24px 0 16px;font-weight:700}
+.addr{font-size:12px;color:#666;font-family:monospace;word-break:break-all}
+.refresh-btn{background:none;border:1px solid #333;color:#888;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px}
+.refresh-btn:hover{border-color:#00d4ff;color:#00d4ff}
+.tabs{display:flex;gap:4px;margin-bottom:16px}
+.tab{padding:8px 16px;border-radius:8px 8px 0 0;cursor:pointer;font-size:13px;background:#1a1a28;color:#888;border:1px solid #2a2a3a;border-bottom:none}
+.tab.active{background:#14141e;color:#00d4ff;border-color:#00d4ff;border-bottom:1px solid #14141e}
+.tab-content{display:none}.tab-content.active{display:block}
+.toast{position:fixed;top:20px;right:20px;padding:12px 20px;border-radius:8px;font-size:14px;z-index:999;animation:slideIn .3s}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="header">
+    <div><h1>MEME DApp</h1><span class="addr">Puppynet Testnet | Chain ID: 157</span></div>
+    <div class="info">
+      <span id="chainBadge" class="chain-badge">未连接</span>
+      <button id="connectBtn" class="btn btn-primary" onclick="connectWallet()">连接钱包</button>
+    </div>
+  </header>
+  <main id="main">
+    <!-- 数据面板 -->
+    <div class="section-title">合约数据 <button class="refresh-btn" onclick="refreshData()">刷新</button></div>
+    <div class="grid">
+      <div class="card">
+        <h2>vAMM 状态</h2>
+        <div class="stat-grid">
+          <div class="stat"><label>X 储备</label><div class="val" id="dX">-</div></div>
+          <div class="stat"><label>Y 储备</label><div class="val" id="dY">-</div></div>
+          <div class="stat"><label>K 常量</label><div class="val" id="dK">-</div></div>
+          <div class="stat"><label>标记价格</label><div class="val blue" id="dPrice">-</div></div>
+          <div class="stat"><label>TWAP</label><div class="val blue" id="dTwap">-</div></div>
+          <div class="stat"><label>空头总量</label><div class="val" id="dShortTotal">-</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>资金 & 代币</h2>
+        <div class="stat-grid">
+          <div class="stat"><label>金库余额</label><div class="val green" id="dVault">-</div></div>
+          <div class="stat"><label>累计手续费</label><div class="val" id="dFee">-</div></div>
+          <div class="stat"><label>AME 总供应</label><div class="val" id="dAmeSupply">-</div></div>
+          <div class="stat"><label>我的 AME</label><div class="val green" id="dMyAme">-</div></div>
+          <div class="stat"><label>我的 BONE</label><div class="val green" id="dMyBone">-</div></div>
+          <div class="stat"><label>下一仓位 ID</label><div class="val" id="dNextPos">-</div></div>
+        </div>
+      </div>
+      <div class="card full-width">
+        <h2>合约参数（固定常量，不可修改）</h2>
+        <div class="stat-grid">
+          <div class="stat"><label>开仓费率</label><div class="val" id="dOpenFee">-</div></div>
+          <div class="stat"><label>平仓费率</label><div class="val" id="dCloseFee">-</div></div>
+          <div class="stat"><label>冷却区块</label><div class="val" id="dCooldown">-</div></div>
+          <div class="stat"><label>TWAP 窗口</label><div class="val" id="dTwapWin">-</div></div>
+          <div class="stat"><label>代币乘数</label><div class="val" id="dMultiplier">-</div></div>
+          <div class="stat"><label>最小交易</label><div class="val" id="dMinTrade">-</div></div>
+          <div class="stat"><label>Owner</label><div class="val addr" id="dOwner">-</div></div>
+          <div class="stat"><label>手续费接收</label><div class="val addr" id="dFeeRecipient">-</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 交易面板 -->
+    <div class="section-title">交易操作</div>
+    <div class="grid">
+      <!-- 做多 -->
+      <div class="card">
+        <h2>做多 (Long)</h2>
+        <div class="input-group">
+          <label>投入 BONE 数量</label>
+          <input type="text" id="longAmount" placeholder="例如 0.01">
+        </div>
+        <div class="action-row">
+          <button class="btn btn-success" onclick="openLong()">开多仓</button>
+        </div>
+        <h3>平多仓</h3>
+        <div class="input-group">
+          <label>销毁 AME 数量</label>
+          <input type="text" id="closeLongAme" placeholder="AME 数量">
+        </div>
+        <div class="input-group">
+          <label>预估回收</label>
+          <div class="val green" id="estPayout" style="font-size:14px">-</div>
+        </div>
+        <div class="action-row">
+          <button class="btn btn-secondary" onclick="estimatePayout()">预估</button>
+          <button class="btn btn-danger" onclick="closeLong()">平多仓</button>
+        </div>
+      </div>
+
+      <!-- 做空 -->
+      <div class="card">
+        <h2>做空 (Short)</h2>
+        <div class="input-group">
+          <label>投入 BONE 数量</label>
+          <input type="text" id="shortAmount" placeholder="例如 0.01">
+        </div>
+        <div class="action-row">
+          <button class="btn btn-danger" onclick="openShort()">开空仓</button>
+        </div>
+        <h3>平空仓</h3>
+        <div class="input-group">
+          <label>仓位 ID</label>
+          <input type="text" id="closePositionId" placeholder="仓位 ID">
+        </div>
+        <div class="action-row">
+          <button class="btn btn-success" onclick="closePosition()">全部平仓</button>
+        </div>
+        <h3>部分平仓</h3>
+        <div class="input-group">
+          <label>仓位 ID</label>
+          <input type="text" id="partialPosId" placeholder="仓位 ID">
+        </div>
+        <div class="input-group">
+          <label>平仓比例 (1-99%)</label>
+          <input type="text" id="partialPercent" placeholder="例如 50">
+        </div>
+        <div class="action-row">
+          <button class="btn btn-warn" onclick="closePartial()">部分平仓</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 查询面板 -->
+    <div class="section-title">仓位查询</div>
+    <div class="grid">
+      <div class="card">
+        <h2>查询仓位详情</h2>
+        <div class="input-group">
+          <label>仓位 ID</label>
+          <input type="text" id="queryPosId" placeholder="仓位 ID">
+        </div>
+        <div class="action-row">
+          <button class="btn btn-secondary" onclick="queryPosition()">查询</button>
+          <button class="btn btn-secondary" onclick="queryPnL()">查盈亏</button>
+        </div>
+        <div id="posResult" style="margin-top:12px"></div>
+      </div>
+      <div class="card">
+        <h2>我的仓位列表</h2>
+        <div class="action-row">
+          <button class="btn btn-secondary" onclick="queryMyPositions()">查询我的仓位</button>
+        </div>
+        <div id="myPositions" style="margin-top:12px"></div>
+      </div>
+    </div>
+
+    <!-- 管理面板 -->
+    <div class="section-title">Owner 管理</div>
+    <div class="grid">
+      <div class="card">
+        <h2>手续费管理</h2>
+        <div class="input-group">
+          <label>手续费接收地址</label>
+          <input type="text" id="newFeeRecipient" placeholder="0x...">
+        </div>
+        <div class="action-row"><button class="btn btn-warn" onclick="setFeeRecipient()">设置接收地址</button></div>
+        <div class="action-row" style="margin-top:8px"><button class="btn btn-success" onclick="withdrawFees()">提取手续费</button></div>
+      </div>
+      <div class="card">
+        <h2>所有权 & 资金</h2>
+        <div class="input-group">
+          <label>新 Owner 地址</label>
+          <input type="text" id="newOwnerAddr" placeholder="0x...">
+        </div>
+        <div class="action-row">
+          <button class="btn btn-danger" onclick="transferOwnership()">发起转移</button>
+          <button class="btn btn-warn" onclick="acceptOwnership()">接受所有权</button>
+        </div>
+        <h3 style="margin-top:16px">提取多余资金</h3>
+        <div class="input-group">
+          <label>接收地址</label>
+          <input type="text" id="surplusTo" placeholder="0x...">
+        </div>
+        <div class="input-group">
+          <label>金额 (BONE)</label>
+          <input type="text" id="surplusAmount" placeholder="例如 1.0">
+        </div>
+        <div class="action-row"><button class="btn btn-danger" onclick="withdrawSurplus()">提取</button></div>
+      </div>
+    </div>
+
+    <!-- 日志 -->
+    <div class="section-title">操作日志</div>
+    <div id="log"></div>
+  </main>
+</div>
+<script>
+const MEME_ADDR = "0xA83c5D21D03804111175e185139247b20329135c";
+const AME_ADDR = "0x48c73020139F8F23cCBC9f24beA339799890DC45";
+const CHAIN_ID = 157;
+const RPC = "https://puppynet.shibrpc.com";
+
+const MEME_ABI = [
+  "function X() view returns (uint256)",
+  "function Y() view returns (uint256)",
+  "function K() view returns (uint256)",
+  "function ameToken() view returns (address)",
+  "function vault() view returns (uint256)",
+  "function feeCollected() view returns (uint256)",
+  "function shortTotal() view returns (uint256)",
+  "function nextPositionId() view returns (uint256)",
+  "function owner() view returns (address)",
+  "function pendingOwner() view returns (address)",
+  "function feeRecipient() view returns (address)",
+  "function openFeeRate() view returns (uint256)",
+  "function closeFeeRate() view returns (uint256)",
+  "function cooldownBlocks() view returns (uint256)",
+  "function twapWindow() view returns (uint256)",
+  "function tokenMultiplier() view returns (uint256)",
+  "function minTradeAmount() view returns (uint256)",
+  "function addressNotional(address) view returns (uint256)",
+  "function getMarkPrice() view returns (uint256)",
+  "function getTWAP() view returns (uint256)",
+  "function getPosition(uint256) view returns (tuple(address owner, uint8 direction, uint256 margin, uint256 size, uint256 openNotional, uint256 openBlock))",
+  "function getAddressPositions(address) view returns (uint256[])",
+  "function getPositionPnL(uint256) view returns (int256)",
+  "function estimateLongPayout(uint256) view returns (uint256)",
+  "function openLong() payable returns (uint256)",
+  "function closeLong(uint256) returns (uint256)",
+  "function openShort() payable returns (uint256)",
+  "function closePosition(uint256) returns (uint256)",
+  "function closePositionPartial(uint256, uint256) returns (uint256)",
+  "function setFeeRecipient(address)",
+  "function transferOwnership(address)",
+  "function acceptOwnership()",
+  "function withdrawFees()",
+  "function withdrawSurplus(address, uint256)"
+];
+
+const AME_ABI = [
+  "function totalSupply() view returns (uint256)",
+  "function balanceOf(address) view returns (uint256)",
+  "function symbol() view returns (string)",
+  "function decimals() view returns (uint8)"
+];
+
+let provider, signer, meme, ame, userAddr;
+const readProvider = new ethers.JsonRpcProvider(RPC);
+const memeRead = new ethers.Contract(MEME_ADDR, MEME_ABI, readProvider);
+const ameRead = new ethers.Contract(AME_ADDR, AME_ABI, readProvider);
+
+function log(msg, type = "info") {
+  const el = document.getElementById("log");
+  const t = new Date().toLocaleTimeString();
+  el.innerHTML = `<div class="log-entry ${type}">[${t}] ${msg}</div>` + el.innerHTML;
+}
+
+function fmtEth(v) { return parseFloat(ethers.formatEther(v)).toFixed(6); }
+function fmtEthFull(v) { return ethers.formatEther(v); }
+
+async function connectWallet() {
+  try {
+    if (!window.ethereum) { log("未检测到钱包，请安装 MetaMask", "error"); return; }
+    provider = new ethers.BrowserProvider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    const net = await provider.getNetwork();
+    if (Number(net.chainId) !== CHAIN_ID) {
+      log("切换到 Puppynet (Chain ID 157)...", "info");
+      try {
+        await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x9d" }] });
+      } catch (e) {
+        if (e.code === 4902) {
+          await window.ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [{ chainId: "0x9d", chainName: "Puppynet Testnet", rpcUrls: [RPC], nativeCurrency: { name: "BONE", symbol: "BONE", decimals: 18 }, blockExplorerUrls: ["https://puppyscan.shib.io"] }]
+          });
+        } else throw e;
+      }
+      provider = new ethers.BrowserProvider(window.ethereum);
+    }
+    signer = await provider.getSigner();
+    userAddr = await signer.getAddress();
+    meme = new ethers.Contract(MEME_ADDR, MEME_ABI, signer);
+    ame = new ethers.Contract(AME_ADDR, AME_ABI, signer);
+    document.getElementById("chainBadge").textContent = userAddr.slice(0, 6) + "..." + userAddr.slice(-4);
+    document.getElementById("chainBadge").classList.add("connected");
+    document.getElementById("connectBtn").textContent = "已连接";
+    log(`钱包已连接: ${userAddr}`, "success");
+    refreshData();
+  } catch (e) { log("连接失败: " + e.message, "error"); }
+}
+
+async function refreshData() {
+  try {
+    log("刷新数据...", "info");
+    const [x, y, k, vault, fee, shortTotal, nextPos, openFee, closeFee, cooldown, twapWin, multiplier, minTrade, owner, feeRecipient, price, twap, ameSupply] = await Promise.all([
+      memeRead.X(), memeRead.Y(), memeRead.K(), memeRead.vault(), memeRead.feeCollected(),
+      memeRead.shortTotal(), memeRead.nextPositionId(), memeRead.openFeeRate(), memeRead.closeFeeRate(),
+      memeRead.cooldownBlocks(), memeRead.twapWindow(), memeRead.tokenMultiplier(), memeRead.minTradeAmount(),
+      memeRead.owner(), memeRead.feeRecipient(), memeRead.getMarkPrice(), memeRead.getTWAP(),
+      ameRead.totalSupply()
+    ]);
+    document.getElementById("dX").textContent = fmtEth(x) + " ETH";
+    document.getElementById("dY").textContent = fmtEth(y) + " ETH";
+    document.getElementById("dK").textContent = parseFloat(ethers.formatEther(k)).toFixed(2);
+    document.getElementById("dPrice").textContent = fmtEth(price);
+    document.getElementById("dTwap").textContent = fmtEth(twap);
+    document.getElementById("dShortTotal").textContent = fmtEth(shortTotal) + " ETH";
+    document.getElementById("dVault").textContent = fmtEth(vault) + " BONE";
+    document.getElementById("dFee").textContent = fmtEth(fee) + " BONE";
+    document.getElementById("dAmeSupply").textContent = fmtEth(ameSupply) + " AME";
+    document.getElementById("dNextPos").textContent = nextPos.toString();
+    document.getElementById("dOpenFee").textContent = openFee.toString() + " BPS (" + (Number(openFee)/100).toFixed(2) + "%)";
+    document.getElementById("dCloseFee").textContent = closeFee.toString() + " BPS (" + (Number(closeFee)/100).toFixed(2) + "%)";
+    document.getElementById("dCooldown").textContent = cooldown.toString();
+    document.getElementById("dTwapWin").textContent = twapWin.toString();
+    document.getElementById("dMultiplier").textContent = multiplier.toString();
+    document.getElementById("dMinTrade").textContent = fmtEthFull(minTrade) + " BONE";
+    document.getElementById("dOwner").textContent = owner;
+    document.getElementById("dFeeRecipient").textContent = feeRecipient === "0x0000000000000000000000000000000000000000" ? "未设置" : feeRecipient;
+    if (userAddr) {
+      const [myAme, myBone] = await Promise.all([
+        ameRead.balanceOf(userAddr),
+        readProvider.getBalance(userAddr)
+      ]);
+      document.getElementById("dMyAme").textContent = fmtEth(myAme) + " AME";
+      document.getElementById("dMyBone").textContent = fmtEth(myBone) + " BONE";
+    }
+    log("数据刷新完成", "success");
+  } catch (e) { log("刷新失败: " + e.message, "error"); }
+}
+
+function ensureConnected() {
+  if (!signer) { log("请先连接钱包", "error"); return false; }
+  return true;
+}
+
+async function openLong() {
+  if (!ensureConnected()) return;
+  const amt = document.getElementById("longAmount").value;
+  if (!amt || isNaN(amt) || Number(amt) <= 0) { log("请输入有效金额", "error"); return; }
+  try {
+    log(`开多仓: ${amt} BONE ...`, "info");
+    const tx = await meme.openLong({ value: ethers.parseEther(amt) });
+    log(`交易已发送: ${tx.hash}`, "info");
+    const receipt = await tx.wait();
+    log(`开多仓成功! 区块: ${receipt.blockNumber}, Gas: ${receipt.gasUsed.toString()}`, "success");
+    refreshData();
+  } catch (e) { log("开多仓失败: " + (e.reason || e.message), "error"); }
+}
+
+async function closeLong() {
+  if (!ensureConnected()) return;
+  const amt = document.getElementById("closeLongAme").value;
+  if (!amt || isNaN(amt) || Number(amt) <= 0) { log("请输入有效 AME 数量", "error"); return; }
+  try {
+    log(`平多仓: ${amt} AME ...`, "info");
+    const tx = await meme.closeLong(ethers.parseEther(amt));
+    log(`交易已发送: ${tx.hash}`, "info");
+    const receipt = await tx.wait();
+    log(`平多仓成功! 区块: ${receipt.blockNumber}`, "success");
+    refreshData();
+  } catch (e) { log("平多仓失败: " + (e.reason || e.message), "error"); }
+}
+
+async function estimatePayout() {
+  const amt = document.getElementById("closeLongAme").value;
+  if (!amt || isNaN(amt) || Number(amt) <= 0) { log("请输入 AME 数量", "error"); return; }
+  try {
+    const payout = await memeRead.estimateLongPayout(ethers.parseEther(amt));
+    document.getElementById("estPayout").textContent = fmtEth(payout) + " BONE";
+    log(`预估回收: ${fmtEth(payout)} BONE`, "info");
+  } catch (e) { log("预估失败: " + (e.reason || e.message), "error"); }
+}
+
+async function openShort() {
+  if (!ensureConnected()) return;
+  const amt = document.getElementById("shortAmount").value;
+  if (!amt || isNaN(amt) || Number(amt) <= 0) { log("请输入有效金额", "error"); return; }
+  try {
+    log(`开空仓: ${amt} BONE ...`, "info");
+    const tx = await meme.openShort({ value: ethers.parseEther(amt) });
+    log(`交易已发送: ${tx.hash}`, "info");
+    const receipt = await tx.wait();
+    log(`开空仓成功! 区块: ${receipt.blockNumber}`, "success");
+    refreshData();
+  } catch (e) { log("开空仓失败: " + (e.reason || e.message), "error"); }
+}
+
+async function closePosition() {
+  if (!ensureConnected()) return;
+  const id = document.getElementById("closePositionId").value;
+  if (id === "" || isNaN(id)) { log("请输入仓位 ID", "error"); return; }
+  try {
+    log(`平仓 #${id} ...`, "info");
+    const tx = await meme.closePosition(id);
+    log(`交易已发送: ${tx.hash}`, "info");
+    const receipt = await tx.wait();
+    log(`平仓成功! 区块: ${receipt.blockNumber}`, "success");
+    refreshData();
+  } catch (e) { log("平仓失败: " + (e.reason || e.message), "error"); }
+}
+
+async function closePartial() {
+  if (!ensureConnected()) return;
+  const id = document.getElementById("partialPosId").value;
+  const pct = document.getElementById("partialPercent").value;
+  if (id === "" || isNaN(id)) { log("请输入仓位 ID", "error"); return; }
+  if (!pct || isNaN(pct) || Number(pct) < 1 || Number(pct) > 99) { log("比例需在 1-99 之间", "error"); return; }
+  try {
+    log(`部分平仓 #${id} (${pct}%) ...`, "info");
+    const tx = await meme.closePositionPartial(id, pct);
+    log(`交易已发送: ${tx.hash}`, "info");
+    const receipt = await tx.wait();
+    log(`部分平仓成功!`, "success");
+    refreshData();
+  } catch (e) { log("部分平仓失败: " + (e.reason || e.message), "error"); }
+}
+
+async function queryPosition() {
+  const id = document.getElementById("queryPosId").value;
+  if (id === "" || isNaN(id)) { log("请输入仓位 ID", "error"); return; }
+  try {
+    const pos = await memeRead.getPosition(id);
+    const isZero = pos.owner === "0x0000000000000000000000000000000000000000";
+    if (isZero) {
+      document.getElementById("posResult").innerHTML = `<div class="pos-card"><div style="color:#ff3d57">仓位 #${id} 不存在或已关闭</div></div>`;
+      return;
+    }
+    const dir = Number(pos.direction) === 0 ? "多" : "空";
+    document.getElementById("posResult").innerHTML = `
+      <div class="pos-card">
+        <div class="pos-header"><strong>仓位 #${id}</strong><span style="color:${dir==='多'?'#00c853':'#ff3d57'}">${dir}</span></div>
+        <div class="pos-detail">Owner: <span class="addr">${pos.owner}</span></div>
+        <div class="pos-detail">保证金: ${fmtEth(pos.margin)} BONE</div>
+        <div class="pos-detail">仓位大小: ${fmtEthFull(pos.size)}</div>
+        <div class="pos-detail">开仓名义值: ${fmtEth(pos.openNotional)} BONE</div>
+        <div class="pos-detail">开仓区块: ${pos.openBlock.toString()}</div>
+      </div>`;
+    log(`查询仓位 #${id} 成功`, "success");
+  } catch (e) { log("查询失败: " + (e.reason || e.message), "error"); }
+}
+
+async function queryPnL() {
+  const id = document.getElementById("queryPosId").value;
+  if (id === "" || isNaN(id)) { log("请输入仓位 ID", "error"); return; }
+  try {
+    const pnl = await memeRead.getPositionPnL(id);
+    const pnlStr = ethers.formatEther(pnl);
+    const isPos = pnl >= 0n;
+    document.getElementById("posResult").innerHTML += `
+      <div class="pos-card">
+        <div>仓位 #${id} 盈亏: <span style="color:${isPos?'#00c853':'#ff3d57'};font-weight:700">${parseFloat(pnlStr).toFixed(6)} BONE</span></div>
+      </div>`;
+    log(`仓位 #${id} PnL: ${pnlStr} BONE`, isPos ? "success" : "error");
+  } catch (e) { log("查询盈亏失败: " + (e.reason || e.message), "error"); }
+}
+
+async function queryMyPositions() {
+  if (!ensureConnected()) return;
+  try {
+    const ids = await memeRead.getAddressPositions(userAddr);
+    const el = document.getElementById("myPositions");
+    if (ids.length === 0) { el.innerHTML = '<div style="color:#888">暂无仓位</div>'; log("暂无仓位", "info"); return; }
+    let html = "";
+    for (const id of ids) {
+      const pos = await memeRead.getPosition(id);
+      const dir = Number(pos.direction) === 0 ? "多" : "空";
+      let pnlStr = "-";
+      try {
+        const pnl = await memeRead.getPositionPnL(id);
+        const pf = parseFloat(ethers.formatEther(pnl)).toFixed(6);
+        pnlStr = `<span style="color:${pnl>=0n?'#00c853':'#ff3d57'}">${pf} BONE</span>`;
+      } catch(_){}
+      html += `
+        <div class="pos-card">
+          <div class="pos-header"><strong>#${id.toString()}</strong><span style="color:${dir==='多'?'#00c853':'#ff3d57'}">${dir}</span></div>
+          <div class="pos-detail">保证金: ${fmtEth(pos.margin)} BONE | 大小: ${fmtEthFull(pos.size)}</div>
+          <div class="pos-detail">盈亏: ${pnlStr}</div>
+        </div>`;
+    }
+    el.innerHTML = html;
+    log(`查询到 ${ids.length} 个仓位`, "success");
+  } catch (e) { log("查询失败: " + (e.reason || e.message), "error"); }
+}
+
+async function setFeeRecipient() {
+  if (!ensureConnected()) return;
+  const addr = document.getElementById("newFeeRecipient").value;
+  if (!ethers.isAddress(addr)) { log("无效地址", "error"); return; }
+  try {
+    const tx = await meme.setFeeRecipient(addr);
+    log(`交易已发送: ${tx.hash}`, "info");
+    await tx.wait();
+    log("手续费接收地址设置成功!", "success");
+    refreshData();
+  } catch (e) { log("设置失败: " + (e.reason || e.message), "error"); }
+}
+
+async function withdrawFees() {
+  if (!ensureConnected()) return;
+  try {
+    const tx = await meme.withdrawFees();
+    log(`提取手续费交易已发送: ${tx.hash}`, "info");
+    await tx.wait();
+    log("手续费提取成功!", "success");
+    refreshData();
+  } catch (e) { log("提取失败: " + (e.reason || e.message), "error"); }
+}
+
+async function transferOwnership() {
+  if (!ensureConnected()) return;
+  const addr = document.getElementById("newOwnerAddr").value;
+  if (!ethers.isAddress(addr)) { log("无效地址", "error"); return; }
+  try {
+    const tx = await meme.transferOwnership(addr);
+    log(`转移所有权交易已发送: ${tx.hash}`, "info");
+    await tx.wait();
+    log("所有权转移已发起，新 Owner 需调用 acceptOwnership", "success");
+  } catch (e) { log("转移失败: " + (e.reason || e.message), "error"); }
+}
+
+async function acceptOwnership() {
+  if (!ensureConnected()) return;
+  try {
+    const tx = await meme.acceptOwnership();
+    log(`接受所有权交易已发送: ${tx.hash}`, "info");
+    await tx.wait();
+    log("所有权已接受!", "success");
+    refreshData();
+  } catch (e) { log("接受失败: " + (e.reason || e.message), "error"); }
+}
+
+async function withdrawSurplus() {
+  if (!ensureConnected()) return;
+  const to = document.getElementById("surplusTo").value;
+  const amt = document.getElementById("surplusAmount").value;
+  if (!ethers.isAddress(to)) { log("无效地址", "error"); return; }
+  if (!amt || isNaN(amt) || Number(amt) <= 0) { log("请输入有效金额", "error"); return; }
+  try {
+    const tx = await meme.withdrawSurplus(to, ethers.parseEther(amt));
+    log(`提取多余资金交易已发送: ${tx.hash}`, "info");
+    await tx.wait();
+    log("多余资金提取成功!", "success");
+    refreshData();
+  } catch (e) { log("提取失败: " + (e.reason || e.message), "error"); }
+}
+
+// 监听账户/链变化
+if (window.ethereum) {
+  window.ethereum.on("accountsChanged", () => location.reload());
+  window.ethereum.on("chainChanged", () => location.reload());
+}
+
+// 页面加载时用只读 provider 刷新数据
+refreshData();
+</script>
+</body>
+</html>
