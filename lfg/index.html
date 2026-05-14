@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WoofingPump Factory Admin - BSC</title>
+<title>LFG Admin - BSC</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -165,26 +165,89 @@
     color: #fbbf24;
     line-height: 1.5;
   }
-  .current-owner {
-    font-size: 12px;
-    color: #667788;
-    margin-bottom: 16px;
-    font-family: 'SF Mono', 'Fira Code', monospace;
+  .balance-hero {
+    background: linear-gradient(135deg, #111827 0%, #0f172a 100%);
+    border: 1px solid #1e2d3d;
+    border-radius: 16px;
+    padding: 28px 24px;
+    margin-bottom: 24px;
+    text-align: center;
   }
-  .current-owner span { color: #8899aa; }
+  .balance-hero .balance-label {
+    font-size: 13px;
+    color: #667788;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .balance-hero .balance-amount {
+    font-size: 36px;
+    font-weight: 700;
+    color: #f0b90b;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    margin-bottom: 4px;
+  }
+  .balance-hero .balance-usd {
+    font-size: 14px;
+    color: #667788;
+  }
+  .collapsible {
+    background: #0d1117;
+    border: 1px solid #1e2d3d;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+  .collapsible-header {
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s;
+  }
+  .collapsible-header:hover { background: #111827; }
+  .collapsible-header h3 {
+    font-size: 14px;
+    font-weight: 500;
+    color: #667788;
+  }
+  .collapsible-arrow {
+    color: #667788;
+    font-size: 12px;
+    transition: transform 0.3s;
+  }
+  .collapsible.open .collapsible-arrow { transform: rotate(180deg); }
+  .collapsible-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+  }
+  .collapsible.open .collapsible-body { max-height: 500px; }
+  .collapsible-inner {
+    padding: 0 20px 20px 20px;
+  }
 </style>
 </head>
 <body>
 
 <div class="header">
   <div class="header-left">
-    <h1>WoofingPump Factory Admin</h1>
+    <h1>LFG Admin</h1>
     <span class="chain-badge">BSC Mainnet</span>
   </div>
   <button id="connectBtn" onclick="connectWallet()">Connect Wallet</button>
 </div>
 
 <div class="container">
+  <!-- Balance Hero -->
+  <div class="balance-hero">
+    <div class="balance-label">Available Fees to Withdraw</div>
+    <div class="balance-amount" id="contractBalance">-- BNB</div>
+  </div>
+
+  <!-- Contract Info -->
   <div class="info-bar">
     <div class="info-row">
       <span class="label">Factory Contract</span>
@@ -192,33 +255,13 @@
     <div class="info-row">
       <span class="value">0xaf6d6F359a630Ec6eb2BaFDc338b86d3E84CaF66</span>
     </div>
-    <div class="info-row" style="margin-top:12px">
-      <span class="label">Contract Balance</span>
-      <span class="balance-val" id="contractBalance">--</span>
-    </div>
-    <div class="info-row">
+    <div class="info-row" style="margin-top:8px">
       <span class="label">Current Owner</span>
       <span class="value" id="currentOwner" style="font-size:12px">--</span>
     </div>
   </div>
 
-  <!-- Transfer Ownership -->
-  <div class="card">
-    <h2>Transfer Ownership</h2>
-    <p class="desc">Transfer the factory contract ownership to a new address. This action is irreversible.</p>
-    <div class="warning-box">
-      WARNING: Once transferred, you will lose all admin privileges. Double check the new owner address.
-    </div>
-    <div class="field">
-      <label>New Owner Address</label>
-      <input type="text" id="newOwnerAddr" placeholder="0x..." />
-    </div>
-    <button class="action-btn btn-transfer" onclick="transferOwnership()" id="transferBtn" disabled>
-      Transfer Ownership
-    </button>
-  </div>
-
-  <!-- Withdraw Fees -->
+  <!-- Withdraw Fees (Primary) -->
   <div class="card">
     <h2>Withdraw Fees</h2>
     <p class="desc">Withdraw all accumulated platform fees (BNB) from the factory contract to a specified address.</p>
@@ -229,6 +272,29 @@
     <button class="action-btn btn-withdraw" onclick="withdrawAll()" id="withdrawBtn" disabled>
       Withdraw All BNB
     </button>
+  </div>
+
+  <!-- Transfer Ownership (Collapsible, Secondary) -->
+  <div class="collapsible" id="transferSection">
+    <div class="collapsible-header" onclick="toggleTransfer()">
+      <h3>Transfer Ownership</h3>
+      <span class="collapsible-arrow">&#9660;</span>
+    </div>
+    <div class="collapsible-body">
+      <div class="collapsible-inner">
+        <p class="desc" style="font-size:13px;color:#667788;margin-bottom:16px;">Transfer the factory contract ownership to a new address. This action is irreversible.</p>
+        <div class="warning-box">
+          WARNING: Once transferred, you will lose all admin privileges. Double check the new owner address.
+        </div>
+        <div class="field">
+          <label>New Owner Address</label>
+          <input type="text" id="newOwnerAddr" placeholder="0x..." />
+        </div>
+        <button class="action-btn btn-transfer" onclick="transferOwnership()" id="transferBtn" disabled>
+          Transfer Ownership
+        </button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -294,6 +360,10 @@ async function loadContractInfo() {
   } catch (e) {
     console.error('loadContractInfo error:', e);
   }
+}
+
+function toggleTransfer() {
+  document.getElementById('transferSection').classList.toggle('open');
 }
 
 async function connectWallet() {
