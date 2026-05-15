@@ -302,7 +302,7 @@ async function refreshData(){
       memeReadOnly.getAmePrice(),memeReadOnly.maxShortAmount(),memeReadOnly.vault()
     ]);
     const sp=$("#s-price"),sm=$("#s-maxshort"),sv=$("#s-vault");
-    if(sp)sp.textContent=fmt(price);
+    if(sp)sp.textContent=fmt(price,10);
     if(sm)sm.textContent=fmt(maxShort,2)+" BONE";
     if(sv)sv.textContent=fmt(vault,2)+" BONE";
   }catch(e){console.warn("refreshData:",e);}
