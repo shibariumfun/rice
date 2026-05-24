@@ -1,1 +1,525 @@
-test
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WoofpumpV5 Owner 管理面板</title>
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:#0a0a0f; color:#e0e0e0; min-height:100vh; }
+header { background:linear-gradient(135deg,#12121a,#1a1a2e); border-bottom:1px solid #2a2a3e; padding:16px 24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+.logo { font-size:20px; font-weight:700; color:#f0b90b; }
+.logo span { color:#888; font-weight:400; font-size:14px; margin-left:8px; }
+.header-right { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.chain-tabs { display:flex; gap:4px; background:#1a1a2e; border-radius:8px; padding:3px; border:1px solid #2a2a3e; }
+.chain-tab { padding:8px 20px; border-radius:6px; cursor:pointer; font-size:14px; font-weight:600; border:none; background:transparent; color:#888; transition:all .2s; }
+.chain-tab.active { background:#f0b90b; color:#0a0a0f; }
+.chain-tab:hover:not(.active) { color:#e0e0e0; background:#2a2a3e; }
+.btn-connect { padding:8px 20px; border-radius:8px; border:1px solid #f0b90b; background:transparent; color:#f0b90b; font-size:14px; cursor:pointer; font-weight:600; transition:all .2s; }
+.btn-connect:hover { background:#f0b90b22; }
+.btn-connect.connected { border-color:#00c853; color:#00c853; }
+.wallet-info { font-size:13px; color:#aaa; }
+main { max-width:960px; margin:0 auto; padding:24px 16px; }
+.status-bar { background:#12121a; border:1px solid #2a2a3e; border-radius:10px; padding:16px 20px; margin-bottom:20px; display:flex; gap:24px; flex-wrap:wrap; align-items:center; }
+.status-item { display:flex; flex-direction:column; gap:2px; }
+.status-label { font-size:12px; color:#666; text-transform:uppercase; letter-spacing:.5px; }
+.status-value { font-size:15px; font-weight:600; color:#e0e0e0; }
+.status-value.highlight { color:#f0b90b; }
+.section { background:#12121a; border:1px solid #2a2a3e; border-radius:10px; margin-bottom:16px; overflow:hidden; }
+.section-header { padding:14px 20px; border-bottom:1px solid #2a2a3e; display:flex; justify-content:space-between; align-items:center; cursor:pointer; user-select:none; }
+.section-header:hover { background:#1a1a2e; }
+.section-title { font-size:16px; font-weight:700; color:#f0b90b; }
+.section-badge { font-size:11px; background:#f0b90b22; color:#f0b90b; padding:2px 10px; border-radius:12px; }
+.section-body { padding:20px; display:none; }
+.section-body.open { display:block; }
+.action-group { margin-bottom:20px; padding-bottom:20px; border-bottom:1px solid #1a1a2e; }
+.action-group:last-child { margin-bottom:0; border-bottom:none; padding-bottom:0; }
+.action-title { font-size:14px; font-weight:600; margin-bottom:4px; color:#ccc; }
+.action-desc { font-size:12px; color:#666; margin-bottom:10px; }
+.input-row { display:flex; gap:10px; align-items:stretch; flex-wrap:wrap; }
+input[type="text"], textarea { flex:1; min-width:200px; padding:10px 14px; border-radius:8px; border:1px solid #2a2a3e; background:#0a0a0f; color:#e0e0e0; font-size:14px; font-family:monospace; outline:none; transition:border .2s; }
+input[type="text"]:focus, textarea:focus { border-color:#f0b90b; }
+textarea { min-height:60px; resize:vertical; }
+.btn { padding:10px 24px; border-radius:8px; border:none; font-size:14px; font-weight:600; cursor:pointer; transition:all .2s; white-space:nowrap; }
+.btn-primary { background:#f0b90b; color:#0a0a0f; }
+.btn-primary:hover { background:#d4a20a; }
+.btn-danger { background:#e53935; color:#fff; }
+.btn-danger:hover { background:#c62828; }
+.btn-success { background:#00c853; color:#0a0a0f; }
+.btn-success:hover { background:#00a844; }
+.btn:disabled { opacity:.5; cursor:not-allowed; }
+.toast { position:fixed; bottom:24px; right:24px; max-width:420px; padding:14px 20px; border-radius:10px; font-size:13px; z-index:9999; animation:slideIn .3s; word-break:break-all; }
+.toast.success { background:#00c85322; border:1px solid #00c853; color:#00c853; }
+.toast.error { background:#e5393522; border:1px solid #e53935; color:#e53935; }
+.toast.info { background:#2196f322; border:1px solid #2196f3; color:#2196f3; }
+@keyframes slideIn { from{transform:translateX(100px);opacity:0} to{transform:translateX(0);opacity:1} }
+.contract-addr { font-size:11px; color:#555; font-family:monospace; margin-left:8px; }
+.switch-row { display:flex; align-items:center; gap:10px; }
+.switch-label { font-size:14px; color:#ccc; }
+@media(max-width:640px){ header{flex-direction:column;align-items:flex-start} .input-row{flex-direction:column} .btn{width:100%} }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="logo">WoofpumpV5 <span>Owner 管理面板</span></div>
+    <div class="header-right">
+      <div class="chain-tabs">
+        <button class="chain-tab active" onclick="switchChain('eth')">Ethereum</button>
+        <button class="chain-tab" onclick="switchChain('bsc')">BSC</button>
+      </div>
+      <button class="btn-connect" id="btnConnect" onclick="connectWallet()">连接钱包</button>
+      <div class="wallet-info" id="walletInfo"></div>
+    </div>
+  </header>
+  <main>
+    <div class="status-bar" id="statusBar">
+      <div class="status-item"><span class="status-label">当前链</span><span class="status-value highlight" id="sChain">未连接</span></div>
+      <div class="status-item"><span class="status-label">钱包地址</span><span class="status-value" id="sAddr">-</span></div>
+      <div class="status-item"><span class="status-label">Treasury 余额</span><span class="status-value highlight" id="sTreasBal">-</span></div>
+      <div class="status-item"><span class="status-label">Factory 余额</span><span class="status-value highlight" id="sFactBal">-</span></div>
+    </div>
+
+    <!-- Treasury -->
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <span class="section-title">WoofingPumpTreasury <span class="contract-addr" id="addrTreasury"></span></span>
+        <span class="section-badge">资金库</span>
+      </div>
+      <div class="section-body open">
+        <div class="action-group">
+          <div class="action-title">提取全部手续费 (flush)</div>
+          <div class="action-desc">将 Treasury 合约中的全部 ETH/BNB 余额转给 recipient 地址。任何人可调用。</div>
+          <div class="input-row"><button class="btn btn-success" onclick="treasuryFlush()">执行 Flush</button></div>
+        </div>
+        <div class="action-group">
+          <div class="action-title">查看 / 修改 Recipient</div>
+          <div class="action-desc">当前 recipient: <span id="curRecipient" style="color:#f0b90b">加载中...</span></div>
+          <div class="input-row">
+            <input type="text" id="inRecipient" placeholder="新 recipient 地址 (0x...)">
+            <button class="btn btn-primary" onclick="treasurySetRecipient()">设置 Recipient</button>
+          </div>
+        </div>
+        <div class="action-group">
+          <div class="action-title">转让 Treasury 所有权</div>
+          <div class="action-desc">将 Treasury 的 owner 转让给新地址。</div>
+          <div class="input-row">
+            <input type="text" id="inTreasuryOwner" placeholder="新 owner 地址 (0x...)">
+            <button class="btn btn-danger" onclick="treasuryTransferOwnership()">转让所有权</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Factory -->
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <span class="section-title">WoofingPumpFactory <span class="contract-addr" id="addrFactory"></span></span>
+        <span class="section-badge">工厂合约</span>
+      </div>
+      <div class="section-body">
+        <div class="action-group">
+          <div class="action-title">提取 Factory 余额 (withdrawAll)</div>
+          <div class="action-desc">将 Factory 合约中累积的平台手续费全部提取到指定地址。</div>
+          <div class="input-row">
+            <input type="text" id="inWithdrawTo" placeholder="接收地址 (0x...)">
+            <button class="btn btn-success" onclick="factoryWithdrawAll()">提取全部</button>
+          </div>
+        </div>
+        <div class="action-group">
+          <div class="action-title">设置创建代币费用 (setCreationFee)</div>
+          <div class="action-desc">当前费用: <span id="curCreationFee" style="color:#f0b90b">加载中...</span> | 最大值: 1 ETH/BNB</div>
+          <div class="input-row">
+            <input type="text" id="inCreationFee" placeholder="新费用 (单位: ETH/BNB, 例如 0.01)">
+            <button class="btn btn-primary" onclick="factorySetCreationFee()">设置费用</button>
+          </div>
+        </div>
+        <div class="action-group">
+          <div class="action-title">设置邀请合约 (setInviteContract)</div>
+          <div class="action-desc">更改 Hook 使用的 OTOInvite 合约地址。</div>
+          <div class="input-row">
+            <input type="text" id="inInviteContract" placeholder="邀请合约地址 (0x...)">
+            <button class="btn btn-primary" onclick="factorySetInviteContract()">设置邀请合约</button>
+          </div>
+        </div>
+        <div class="action-group">
+          <div class="action-title">开关邀请奖励 (setInviteRewardsEnabled)</div>
+          <div class="action-desc">当前状态: <span id="curInviteRewards" style="color:#f0b90b">加载中...</span></div>
+          <div class="input-row">
+            <button class="btn btn-success" onclick="factorySetInviteRewards(true)">开启</button>
+            <button class="btn btn-danger" onclick="factorySetInviteRewards(false)">关闭</button>
+          </div>
+        </div>
+        <div class="action-group">
+          <div class="action-title">转让 Factory 所有权</div>
+          <div class="input-row">
+            <input type="text" id="inFactoryOwner" placeholder="新 owner 地址 (0x...)">
+            <button class="btn btn-danger" onclick="factoryTransferOwnership()">转让所有权</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- OTOInvite -->
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <span class="section-title">OTOInvite <span class="contract-addr" id="addrInvite"></span></span>
+        <span class="section-badge">白名单管理</span>
+      </div>
+      <div class="section-body">
+        <div class="action-group">
+          <div class="action-title">设置白名单 (setWhitelist)</div>
+          <div class="action-desc">批量添加或移除白名单地址，每行一个地址。</div>
+          <textarea id="inWhitelistAddrs" placeholder="每行一个地址，例如:&#10;0xAbc...&#10;0xDef..."></textarea>
+          <div class="input-row" style="margin-top:10px">
+            <button class="btn btn-success" onclick="inviteSetWhitelist(true)">添加白名单</button>
+            <button class="btn btn-danger" onclick="inviteSetWhitelist(false)">移除白名单</button>
+          </div>
+        </div>
+        <div class="action-group">
+          <div class="action-title">查询地址信息</div>
+          <div class="action-desc">查询某地址的白名单状态、上级、邀请数等信息。</div>
+          <div class="input-row">
+            <input type="text" id="inQueryAddr" placeholder="查询地址 (0x...)">
+            <button class="btn btn-primary" onclick="inviteQuery()">查询</button>
+          </div>
+          <div id="queryResult" style="margin-top:10px;font-size:13px;color:#aaa;"></div>
+        </div>
+        <div class="action-group">
+          <div class="action-title">转让 OTOInvite 所有权</div>
+          <div class="input-row">
+            <input type="text" id="inInviteOwner" placeholder="新 owner 地址 (0x...)">
+            <button class="btn btn-danger" onclick="inviteTransferOwnership()">转让所有权</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script>
+// ========== 配置 ==========
+const CHAINS = {
+  eth: {
+    name: 'Ethereum',
+    chainId: '0x1',
+    chainIdDec: 1,
+    symbol: 'ETH',
+    rpc: 'https://eth.llamarpc.com',
+    explorer: 'https://etherscan.io',
+    contracts: {
+      treasury: '0x46e0f637dcece1598c09117b813ce0d2f7f5d34e',
+      factory: '0x092043364f39f7f57c4e1d32116f453bfae37440',
+      invite: '0x121f95d125b135bc514d80e83b2cf06d37d364bc',
+      hook: '0x96317ccbce844d261bee7b1d3b0f855dac6c6888'
+    }
+  },
+  bsc: {
+    name: 'BSC',
+    chainId: '0x38',
+    chainIdDec: 56,
+    symbol: 'BNB',
+    rpc: 'https://bsc-dataseed.binance.org',
+    explorer: 'https://bscscan.com',
+    contracts: {
+      treasury: '0xe12f37da5d64b44815dde389c24a16c2f6ecfdb3',
+      factory: '0x6a1b9b3ae54bcec055b8463bda8e2bfbe417d435',
+      invite: '0x707e3f2446985d33cc787947712505e66599e270',
+      hook: '0xff73335dcefa5a61b9daf475c2fb15848cb7e888'
+    }
+  }
+};
+
+// ABI 片段
+const TREASURY_ABI = [
+  'function flush() external',
+  'function setRecipient(address _recipient) external',
+  'function transferOwnership(address newOwner) external',
+  'function owner() view returns (address)',
+  'function recipient() view returns (address)'
+];
+
+const FACTORY_ABI = [
+  'function withdrawAll(address payable to) external',
+  'function setCreationFee(uint256 newFee) external',
+  'function setInviteContract(address _invite) external',
+  'function setInviteRewardsEnabled(bool _enabled) external',
+  'function transferOwnership(address newOwner) external',
+  'function owner() view returns (address)',
+  'function creationFee() view returns (uint256)',
+  'function totalTokens() view returns (uint256)'
+];
+
+const INVITE_ABI = [
+  'function setWhitelist(address[] calldata addrs, bool status) external',
+  'function transferOwnership(address newOwner) external',
+  'function owner() view returns (address)',
+  'function isWhitelist(address) view returns (bool)',
+  'function getInfo(address user) view returns (address _initialInviter, address _parent, uint256 _inviteCount, bool _isBound)'
+];
+
+const HOOK_ABI = [
+  'function inviteRewardsEnabled() view returns (bool)',
+  'function inviteContract() view returns (address)'
+];
+
+// ========== 状态 ==========
+let currentChain = 'eth';
+let provider = null;
+let signer = null;
+let userAddress = null;
+
+// ========== UI 工具 ==========
+function toggleSection(el) {
+  const body = el.nextElementSibling;
+  body.classList.toggle('open');
+}
+
+let toastTimer = null;
+function showToast(msg, type = 'info') {
+  let t = document.querySelector('.toast');
+  if (t) t.remove();
+  clearTimeout(toastTimer);
+  t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  toastTimer = setTimeout(() => t.remove(), 6000);
+}
+
+function shortAddr(a) {
+  if (!a) return '-';
+  return a.slice(0, 6) + '...' + a.slice(-4);
+}
+
+function cfg() { return CHAINS[currentChain]; }
+
+// ========== 链切换 ==========
+async function switchChain(chain) {
+  currentChain = chain;
+  document.querySelectorAll('.chain-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.chain-tab').forEach(t => { if (t.textContent.toLowerCase().includes(chain === 'eth' ? 'ether' : 'bsc')) t.classList.add('active'); });
+  updateAddressLabels();
+  if (provider && signer) {
+    try {
+      await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: cfg().chainId }] });
+    } catch (e) {
+      if (e.code === 4902 && chain === 'bsc') {
+        await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [{ chainId: '0x38', chainName: 'BNB Smart Chain', nativeCurrency: { name: 'BNB', symbol: 'BNB', decimals: 18 }, rpcUrls: ['https://bsc-dataseed.binance.org'], blockExplorerUrls: ['https://bscscan.com'] }] });
+      } else {
+        showToast('切换链失败: ' + (e.message || e), 'error');
+      }
+    }
+    await refreshData();
+  }
+}
+
+function updateAddressLabels() {
+  const c = cfg().contracts;
+  document.getElementById('addrTreasury').textContent = c.treasury;
+  document.getElementById('addrFactory').textContent = c.factory;
+  document.getElementById('addrInvite').textContent = c.invite;
+}
+
+// ========== 钱包连接 ==========
+async function connectWallet() {
+  if (!window.ethereum) { showToast('请安装 MetaMask 钱包', 'error'); return; }
+  try {
+    provider = new ethers.BrowserProvider(window.ethereum);
+    const accounts = await provider.send('eth_requestAccounts', []);
+    signer = await provider.getSigner();
+    userAddress = await signer.getAddress();
+    document.getElementById('btnConnect').textContent = shortAddr(userAddress);
+    document.getElementById('btnConnect').classList.add('connected');
+    // 切换到当前选择的链
+    try {
+      await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: cfg().chainId }] });
+    } catch (e) {
+      if (e.code === 4902 && currentChain === 'bsc') {
+        await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [{ chainId: '0x38', chainName: 'BNB Smart Chain', nativeCurrency: { name: 'BNB', symbol: 'BNB', decimals: 18 }, rpcUrls: ['https://bsc-dataseed.binance.org'], blockExplorerUrls: ['https://bscscan.com'] }] });
+      }
+    }
+    provider = new ethers.BrowserProvider(window.ethereum);
+    signer = await provider.getSigner();
+    showToast('钱包已连接: ' + shortAddr(userAddress), 'success');
+    await refreshData();
+  } catch (e) { showToast('连接失败: ' + (e.message || e), 'error'); }
+}
+
+// ========== 数据刷新 ==========
+async function refreshData() {
+  if (!provider) return;
+  const c = cfg().contracts;
+  try {
+    // 重建 provider/signer 以确保链正确
+    provider = new ethers.BrowserProvider(window.ethereum);
+    signer = await provider.getSigner();
+
+    const treasury = new ethers.Contract(c.treasury, TREASURY_ABI, provider);
+    const factory = new ethers.Contract(c.factory, FACTORY_ABI, provider);
+    const hook = new ethers.Contract(c.hook, HOOK_ABI, provider);
+
+    const [tBal, fBal, recipient, creationFee, invRewards] = await Promise.all([
+      provider.getBalance(c.treasury),
+      provider.getBalance(c.factory),
+      treasury.recipient(),
+      factory.creationFee(),
+      hook.inviteRewardsEnabled()
+    ]);
+
+    const sym = cfg().symbol;
+    document.getElementById('sChain').textContent = cfg().name;
+    document.getElementById('sAddr').textContent = shortAddr(userAddress);
+    document.getElementById('sTreasBal').textContent = ethers.formatEther(tBal) + ' ' + sym;
+    document.getElementById('sFactBal').textContent = ethers.formatEther(fBal) + ' ' + sym;
+    document.getElementById('curRecipient').textContent = recipient;
+    document.getElementById('curCreationFee').textContent = ethers.formatEther(creationFee) + ' ' + sym;
+    document.getElementById('curInviteRewards').textContent = invRewards ? '已开启' : '已关闭';
+    document.getElementById('curInviteRewards').style.color = invRewards ? '#00c853' : '#e53935';
+  } catch (e) {
+    console.error('刷新数据失败:', e);
+    showToast('读取链上数据失败，请确保钱包已切换到正确的链', 'error');
+  }
+}
+
+// ========== 合约操作辅助 ==========
+function getContract(name, writable = true) {
+  const c = cfg().contracts;
+  const abis = { treasury: TREASURY_ABI, factory: FACTORY_ABI, invite: INVITE_ABI, hook: HOOK_ABI };
+  return new ethers.Contract(c[name], abis[name], writable ? signer : provider);
+}
+
+async function execTx(fn, successMsg) {
+  if (!signer) { showToast('请先连接钱包', 'error'); return; }
+  try {
+    showToast('交易发送中...', 'info');
+    const tx = await fn();
+    showToast('等待确认... TX: ' + shortAddr(tx.hash), 'info');
+    await tx.wait();
+    showToast(successMsg + ' TX: ' + tx.hash, 'success');
+    await refreshData();
+  } catch (e) {
+    const msg = e.reason || e.message || String(e);
+    showToast('交易失败: ' + msg.slice(0, 200), 'error');
+  }
+}
+
+// ========== Treasury 操作 ==========
+async function treasuryFlush() {
+  await execTx(() => getContract('treasury').flush(), 'Flush 成功!');
+}
+
+async function treasurySetRecipient() {
+  const addr = document.getElementById('inRecipient').value.trim();
+  if (!ethers.isAddress(addr)) { showToast('无效地址', 'error'); return; }
+  await execTx(() => getContract('treasury').setRecipient(addr), 'Recipient 已更新!');
+}
+
+async function treasuryTransferOwnership() {
+  const addr = document.getElementById('inTreasuryOwner').value.trim();
+  if (!ethers.isAddress(addr)) { showToast('无效地址', 'error'); return; }
+  await execTx(() => getContract('treasury').transferOwnership(addr), 'Treasury 所有权已转让!');
+}
+
+// ========== Factory 操作 ==========
+async function factoryWithdrawAll() {
+  let addr = document.getElementById('inWithdrawTo').value.trim();
+  if (!addr) addr = userAddress;
+  if (!ethers.isAddress(addr)) { showToast('无效地址', 'error'); return; }
+  await execTx(() => getContract('factory').withdrawAll(addr), 'Factory 余额已提取!');
+}
+
+async function factorySetCreationFee() {
+  const val = document.getElementById('inCreationFee').value.trim();
+  if (!val || isNaN(Number(val))) { showToast('请输入有效数值', 'error'); return; }
+  const fee = ethers.parseEther(val);
+  await execTx(() => getContract('factory').setCreationFee(fee), '创建费用已更新!');
+}
+
+async function factorySetInviteContract() {
+  const addr = document.getElementById('inInviteContract').value.trim();
+  if (!ethers.isAddress(addr)) { showToast('无效地址', 'error'); return; }
+  await execTx(() => getContract('factory').setInviteContract(addr), '邀请合约已更新!');
+}
+
+async function factorySetInviteRewards(enabled) {
+  await execTx(() => getContract('factory').setInviteRewardsEnabled(enabled), '邀请奖励已' + (enabled ? '开启' : '关闭') + '!');
+}
+
+async function factoryTransferOwnership() {
+  const addr = document.getElementById('inFactoryOwner').value.trim();
+  if (!ethers.isAddress(addr)) { showToast('无效地址', 'error'); return; }
+  await execTx(() => getContract('factory').transferOwnership(addr), 'Factory 所有权已转让!');
+}
+
+// ========== OTOInvite 操作 ==========
+async function inviteSetWhitelist(status) {
+  const raw = document.getElementById('inWhitelistAddrs').value.trim();
+  if (!raw) { showToast('请输入地址', 'error'); return; }
+  const addrs = raw.split(/[\n,;]+/).map(s => s.trim()).filter(s => s.length > 0);
+  for (const a of addrs) {
+    if (!ethers.isAddress(a)) { showToast('无效地址: ' + a, 'error'); return; }
+  }
+  await execTx(() => getContract('invite').setWhitelist(addrs, status), (status ? '添加' : '移除') + '白名单成功! 共 ' + addrs.length + ' 个地址');
+}
+
+async function inviteQuery() {
+  if (!provider) { showToast('请先连接钱包', 'error'); return; }
+  const addr = document.getElementById('inQueryAddr').value.trim();
+  if (!ethers.isAddress(addr)) { showToast('无效地址', 'error'); return; }
+  try {
+    const invite = getContract('invite', false);
+    const [info, wl] = await Promise.all([invite.getInfo(addr), invite.isWhitelist(addr)]);
+    document.getElementById('queryResult').innerHTML =
+      '<b>白名单:</b> ' + (wl ? '<span style="color:#00c853">是</span>' : '<span style="color:#e53935">否</span>') +
+      ' | <b>已绑定:</b> ' + (info._isBound ? '是' : '否') +
+      ' | <b>上级:</b> ' + shortAddr(info._parent) +
+      ' | <b>初始邀请人:</b> ' + shortAddr(info._initialInviter) +
+      ' | <b>邀请人数:</b> ' + info._inviteCount.toString();
+  } catch (e) { showToast('查询失败: ' + (e.message || e), 'error'); }
+}
+
+async function inviteTransferOwnership() {
+  const addr = document.getElementById('inInviteOwner').value.trim();
+  if (!ethers.isAddress(addr)) { showToast('无效地址', 'error'); return; }
+  await execTx(() => getContract('invite').transferOwnership(addr), 'OTOInvite 所有权已转让!');
+}
+
+// ========== 初始化 ==========
+updateAddressLabels();
+
+// 监听钱包事件
+if (window.ethereum) {
+  window.ethereum.on('accountsChanged', async (accounts) => {
+    if (accounts.length === 0) {
+      userAddress = null;
+      document.getElementById('btnConnect').textContent = '连接钱包';
+      document.getElementById('btnConnect').classList.remove('connected');
+    } else {
+      provider = new ethers.BrowserProvider(window.ethereum);
+      signer = await provider.getSigner();
+      userAddress = await signer.getAddress();
+      document.getElementById('btnConnect').textContent = shortAddr(userAddress);
+      await refreshData();
+    }
+  });
+  window.ethereum.on('chainChanged', async () => {
+    provider = new ethers.BrowserProvider(window.ethereum);
+    signer = await provider.getSigner();
+    const network = await provider.getNetwork();
+    const chainId = Number(network.chainId);
+    if (chainId === 1) currentChain = 'eth';
+    else if (chainId === 56) currentChain = 'bsc';
+    document.querySelectorAll('.chain-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.chain-tab').forEach(t => {
+      if ((currentChain === 'eth' && t.textContent.includes('Ether')) || (currentChain === 'bsc' && t.textContent.includes('BSC')))
+        t.classList.add('active');
+    });
+    updateAddressLabels();
+    await refreshData();
+  });
+}
+</script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447" integrity="sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==" data-cf-beacon='{"version":"2024.11.0","token":"75124c326cb447fe934cde04713ae013","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>
